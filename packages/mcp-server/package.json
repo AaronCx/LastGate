@@ -1,0 +1,19 @@
+{
+  "name": "@lastgate/mcp-server",
+  "version": "0.1.0",
+  "description": "LastGate MCP server — pre-flight checks for AI agents",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "lastgate-mcp": "bin/lastgate-mcp.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src", "bin"],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@lastgate/engine": "workspace:*"
+  },
+  "license": "MIT"
+}
