@@ -7,6 +7,7 @@ export function middleware(request: NextRequest) {
   const protectedPaths = [
     "/repos",
     "/activity",
+    "/analytics",
     "/review",
     "/settings",
   ];

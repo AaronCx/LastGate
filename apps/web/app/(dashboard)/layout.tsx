@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   User,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
   { name: "Repos", href: "/repos", icon: GitFork },
   { name: "Activity", href: "/activity", icon: Activity },
+  { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Review", href: "/review", icon: ClipboardCheck },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
