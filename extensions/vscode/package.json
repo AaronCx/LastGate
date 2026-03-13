@@ -1,0 +1,46 @@
+{
+  "name": "lastgate",
+  "displayName": "LastGate",
+  "description": "AI agent commit guardian — see check results directly in VS Code",
+  "version": "0.1.0",
+  "publisher": "aaroncx",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Linters", "Other"],
+  "activationEvents": ["workspaceContains:.lastgate.yml"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [{
+        "id": "lastgate",
+        "title": "LastGate",
+        "icon": "resources/icon.svg"
+      }]
+    },
+    "views": {
+      "lastgate": [{
+        "id": "lastgate.checks",
+        "name": "Check Results"
+      }]
+    },
+    "commands": [
+      { "command": "lastgate.runCheck", "title": "LastGate: Run Check" },
+      { "command": "lastgate.viewDashboard", "title": "LastGate: View Dashboard" },
+      { "command": "lastgate.showFindings", "title": "LastGate: Show Findings" }
+    ],
+    "configuration": {
+      "title": "LastGate",
+      "properties": {
+        "lastgate.apiKey": { "type": "string", "description": "API key for LastGate dashboard" },
+        "lastgate.dashboardUrl": { "type": "string", "default": "https://lastgate.vercel.app" }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.7.0"
+  }
+}
