@@ -1,0 +1,46 @@
+# LastGate's own config — eating our own dogfood
+version: 1
+
+checks:
+  secrets:
+    enabled: true
+    severity: fail
+  duplicates:
+    enabled: true
+    severity: warn
+    lookback: 10
+  lint:
+    enabled: true
+    severity: fail
+    command: "bun run lint"
+  build:
+    enabled: true
+    severity: fail
+    command: "bun run build"
+    timeout: 120
+  dependencies:
+    enabled: true
+    severity: warn
+    fail_on: critical
+  file_patterns:
+    enabled: true
+    severity: fail
+    block:
+      - "*.sqlite"
+      - "dump.sql"
+    allow:
+      - ".env.example"
+  commit_message:
+    enabled: true
+    severity: warn
+    require_conventional: true
+  agent_patterns:
+    enabled: true
+    severity: warn
+
+protected_branches:
+  - main
+
+agent_feedback:
+  enabled: true
+  format: "both"
