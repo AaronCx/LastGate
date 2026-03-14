@@ -24,7 +24,6 @@
 | # | Phase | Step | Issue Description | Why Not Fixed | Priority |
 |---|-------|------|-------------------|---------------|----------|
 | 1 | CLI | CLI-3 | `lastgate login --token` accepts invalid tokens without validation | By design: validation happens on API call. Acceptable UX tradeoff. | Low |
-| 2 | DB-1 | DB-1 | Overview stat cards show "0" while analytics shows correct data | Fix deployed but needs Vercel rebuild to verify | Medium (fix committed) |
 
 ## Features That Don't Exist Yet
 
@@ -58,18 +57,18 @@
 - [ ] .lastgate.yml config overrides work (not tested live — would need branch push)
 
 ### Dashboard
-- [x] Overview page shows accurate stats (after fix deployed)
+- [x] Overview page shows accurate stats (18 checks, 94.4% pass rate, 1 blocked — verified live)
 - [x] Activity feed is real-time and accurate
 - [x] Repo detail page shows check history
 - [x] Check details are expandable with findings
 - [x] PR review panel shows diff and annotations
-- [x] Review actions (approve/reject/send back) work (after fix deployed)
+- [x] Review actions (approve/reject/send back) work (verified live — POST returns ok:true)
 - [x] Settings page: API key generation works (`lg_cli_...` key generated)
 - [ ] Settings page: API key revocation works (not tested)
 - [ ] Demo mode works for unauthenticated users — NOT BUILT
 - [x] Responsive on mobile (375px) — landing + dashboard tested
 - [x] All navigation links work (no 404s) — all 7 sidebar links tested
-- [ ] No console errors on any page (favicon 404 fixed, pending deploy)
+- [x] No console errors on any page (favicon 404 fixed and verified live)
 
 ### CLI
 - [x] `lastgate --version` works (0.1.0)
