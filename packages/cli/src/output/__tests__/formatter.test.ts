@@ -1,91 +1,375 @@
 import { describe, test, expect } from "bun:test";
+import { formatCheckResults, formatResultsJson } from "../formatter";
+import type { CheckRunResults } from "@lastgate/engine";
 
-// Test the formatting logic directly
-describe("CLI Output Formatter", () => {
-  test("formats check results with correct symbols", () => {
-    const PASS = "\u2713";
-    const FAIL = "\u2717";
-    const WARN = "\u26A0";
-    expect(PASS).toBe("✓");
-    expect(FAIL).toBe("✗");
-    expect(WARN).toBe("⚠");
+/**
+ * Tests for formatCheckResults and formatResultsJson.
+ *
+ * CheckResult uses .type (not .name) for the check identifier,
+ * and findings live at check.details.findings.
+ */
+
+function makeResults(
+  checks: Array<{
+    type: string;
+    status: "pass" | "fail" | "warn";
+    title?: string;
+    summary?: string;
+    details?: Record<string, unknown>;
+    duration_ms?: number;
+  }>
+): CheckRunResults {
+  const failures = checks.filter((c) => c.status === "fail").length;
+  const warnings = checks.filter((c) => c.status === "warn").length;
+
+  return {
+    checks: checks.map((c) => ({
+      type: c.type,
+      status: c.status,
+      title: c.title || c.type,
+      summary: c.summary,
+      details: c.details || {},
+      duration_ms: c.duration_ms,
+    })),
+    hasFailures: failures > 0,
+    hasWarnings: warnings > 0,
+    failureCount: failures,
+    warningCount: warnings,
+    summary: `${failures} failures, ${warnings} warnings`,
+    annotations: [],
+  } as unknown as CheckRunResults;
+}
+
+describe("formatCheckResults", () => {
+  test("includes header text", () => {
+    const results = makeResults([
+      { type: "secrets", status: "pass" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("LastGate Pre-flight Check");
   });
 
-  test("summary line shows correct counts", () => {
-    const results = {
-      checks: [
-        { status: "pass" },
-        { status: "pass" },
-        { status: "fail" },
-        { status: "warn" },
-      ],
-    };
-    const failures = results.checks.filter(c => c.status === "fail").length;
-    const warnings = results.checks.filter(c => c.status === "warn").length;
-    const passes = results.checks.filter(c => c.status === "pass").length;
-
-    const parts: string[] = [];
-    if (failures > 0) parts.push(`${failures} failure${failures !== 1 ? "s" : ""}`);
-    if (warnings > 0) parts.push(`${warnings} warning${warnings !== 1 ? "s" : ""}`);
-    if (passes > 0) parts.push(`${passes} passed`);
-
-    expect(parts.join(", ")).toBe("1 failure, 1 warning, 2 passed");
+  test("displays check type in output", () => {
+    const results = makeResults([
+      { type: "secrets", status: "pass" },
+      { type: "lint", status: "pass" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("secrets");
+    expect(output).toContain("lint");
   });
 
-  test("singular grammar for 1 failure", () => {
-    const failures = 1;
-    const label = `${failures} failure${failures !== 1 ? "s" : ""}`;
-    expect(label).toBe("1 failure");
+  test("shows PASSED for all-pass results", () => {
+    const results = makeResults([
+      { type: "secrets", status: "pass" },
+      { type: "lint", status: "pass" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("PASSED");
+    expect(output).not.toContain("BLOCKED");
   });
 
-  test("plural grammar for multiple failures", () => {
-    const failures = 3;
-    const label = `${failures} failure${failures !== 1 ? "s" : ""}`;
-    expect(label).toBe("3 failures");
+  test("shows BLOCKED when any check fails", () => {
+    const results = makeResults([
+      { type: "secrets", status: "fail" },
+      { type: "lint", status: "pass" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("BLOCKED");
   });
 
-  test("BLOCKED result when failures exist", () => {
-    const failures = 2;
-    const result = failures > 0 ? "BLOCKED" : "PASSED";
-    expect(result).toBe("BLOCKED");
+  test("shows PASSED WITH WARNINGS for warn-only results", () => {
+    const results = makeResults([
+      { type: "secrets", status: "pass" },
+      { type: "lint", status: "warn" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("PASSED WITH WARNINGS");
   });
 
-  test("PASSED WITH WARNINGS when warnings but no failures", () => {
-    const failures = 0;
-    const warnings = 1;
-    const result = failures > 0 ? "BLOCKED" : warnings > 0 ? "PASSED WITH WARNINGS" : "PASSED";
-    expect(result).toBe("PASSED WITH WARNINGS");
+  test("BLOCKED takes precedence over warnings", () => {
+    const results = makeResults([
+      { type: "secrets", status: "fail" },
+      { type: "lint", status: "warn" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("BLOCKED");
+    expect(output).not.toContain("PASSED WITH WARNINGS");
   });
 
-  test("PASSED when all clear", () => {
-    const failures = 0;
-    const warnings = 0;
-    const result = failures > 0 ? "BLOCKED" : warnings > 0 ? "PASSED WITH WARNINGS" : "PASSED";
-    expect(result).toBe("PASSED");
+  test("displays summary counts", () => {
+    const results = makeResults([
+      { type: "secrets", status: "fail" },
+      { type: "lint", status: "warn" },
+      { type: "build", status: "pass" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("1 failure");
+    expect(output).toContain("1 warning");
+    expect(output).toContain("1 passed");
   });
 
-  test("--json flag outputs valid JSON", () => {
-    const results = {
-      checks: [{ name: "secrets", status: "pass", summary: "No secrets" }],
-      hasFailures: false,
-    };
-    const json = JSON.stringify(results, null, 2);
-    const parsed = JSON.parse(json);
-    expect(parsed.checks[0].name).toBe("secrets");
+  test("pluralizes counts correctly for multiples", () => {
+    const results = makeResults([
+      { type: "secrets", status: "fail" },
+      { type: "lint", status: "fail" },
+      { type: "build", status: "warn" },
+      { type: "test", status: "warn" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("2 failures");
+    expect(output).toContain("2 warnings");
   });
 
-  test("detail lines show file:line and error message", () => {
-    const finding = { file: "src/config.ts", line: 14, message: "Hardcoded secret" };
-    const location = `${finding.file}:${finding.line}`;
-    expect(location).toBe("src/config.ts:14");
-    expect(finding.message).toBe("Hardcoded secret");
+  test("singular grammar for exactly 1 failure", () => {
+    const results = makeResults([
+      { type: "secrets", status: "fail" },
+      { type: "lint", status: "pass" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("1 failure");
+    expect(output).not.toContain("1 failures");
   });
 
-  test("long messages are truncatable", () => {
-    const longMessage = "A".repeat(200);
-    const maxWidth = 80;
-    const truncated = longMessage.length > maxWidth ? longMessage.substring(0, maxWidth - 3) + "..." : longMessage;
-    expect(truncated.length).toBe(80);
-    expect(truncated).toEndWith("...");
+  test("shows summary text for each check", () => {
+    const results = makeResults([
+      { type: "secrets", status: "pass", summary: "No secrets found" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("No secrets found");
+  });
+
+  test("falls back to title when summary is undefined", () => {
+    const results = makeResults([
+      { type: "secrets", status: "pass", title: "Secrets Check" },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("Secrets Check");
+  });
+
+  test("displays findings from check.details.findings", () => {
+    const results = makeResults([
+      {
+        type: "secrets",
+        status: "fail",
+        details: {
+          findings: [
+            {
+              severity: "error",
+              file: "config.ts",
+              line: 42,
+              message: "Hardcoded API key detected",
+            },
+          ],
+        },
+      },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("Findings");
+    expect(output).toContain("config.ts");
+    expect(output).toContain("42");
+    expect(output).toContain("Hardcoded API key detected");
+  });
+
+  test("displays ERROR label for error severity findings", () => {
+    const results = makeResults([
+      {
+        type: "secrets",
+        status: "fail",
+        details: {
+          findings: [
+            { severity: "error", message: "critical issue" },
+          ],
+        },
+      },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("ERROR");
+  });
+
+  test("displays WARN label for warning severity findings", () => {
+    const results = makeResults([
+      {
+        type: "lint",
+        status: "warn",
+        details: {
+          findings: [
+            { severity: "warning", message: "minor issue" },
+          ],
+        },
+      },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("WARN");
+  });
+
+  test("displays INFO label for info severity findings", () => {
+    const results = makeResults([
+      {
+        type: "lint",
+        status: "pass",
+        details: {
+          findings: [
+            { severity: "info", message: "suggestion" },
+          ],
+        },
+      },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("INFO");
+  });
+
+  test("handles findings without file location", () => {
+    const results = makeResults([
+      {
+        type: "secrets",
+        status: "fail",
+        details: {
+          findings: [
+            { severity: "error", message: "global issue" },
+          ],
+        },
+      },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("global issue");
+  });
+
+  test("handles findings without line number", () => {
+    const results = makeResults([
+      {
+        type: "lint",
+        status: "warn",
+        details: {
+          findings: [
+            { severity: "warning", file: "app.ts", message: "unused import" },
+          ],
+        },
+      },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("app.ts");
+    expect(output).toContain("unused import");
+  });
+
+  test("skips findings section when no checks have findings", () => {
+    const results = makeResults([
+      { type: "secrets", status: "pass", details: {} },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).not.toContain("Findings");
+  });
+
+  test("skips checks with empty findings array", () => {
+    const results = makeResults([
+      { type: "lint", status: "pass", details: { findings: [] } },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).not.toContain("Findings");
+  });
+
+  test("renders multiple findings under one check", () => {
+    const results = makeResults([
+      {
+        type: "secrets",
+        status: "fail",
+        details: {
+          findings: [
+            { severity: "error", file: "a.ts", line: 1, message: "first" },
+            { severity: "error", file: "b.ts", line: 5, message: "second" },
+            { severity: "warning", file: "c.ts", line: 10, message: "third" },
+          ],
+        },
+      },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("first");
+    expect(output).toContain("second");
+    expect(output).toContain("third");
+  });
+
+  test("findings from multiple checks are all displayed", () => {
+    const results = makeResults([
+      {
+        type: "secrets",
+        status: "fail",
+        details: {
+          findings: [
+            { severity: "error", message: "secret found" },
+          ],
+        },
+      },
+      {
+        type: "lint",
+        status: "warn",
+        details: {
+          findings: [
+            { severity: "warning", message: "lint warning" },
+          ],
+        },
+      },
+    ]);
+    const output = formatCheckResults(results);
+    expect(output).toContain("secret found");
+    expect(output).toContain("lint warning");
+  });
+});
+
+describe("formatResultsJson", () => {
+  test("returns valid JSON string", () => {
+    const results = makeResults([
+      { type: "secrets", status: "pass" },
+    ]);
+    const jsonStr = formatResultsJson(results);
+    const parsed = JSON.parse(jsonStr);
+    expect(parsed).toBeDefined();
+  });
+
+  test("preserves check type in JSON output", () => {
+    const results = makeResults([
+      { type: "secrets", status: "pass" },
+    ]);
+    const parsed = JSON.parse(formatResultsJson(results));
+    expect(parsed.checks[0].type).toBe("secrets");
+  });
+
+  test("preserves all fields in JSON output", () => {
+    const results = makeResults([
+      {
+        type: "lint",
+        status: "fail",
+        title: "Lint Check",
+        summary: "3 issues found",
+        details: { findings: [{ message: "unused var" }] },
+        duration_ms: 150,
+      },
+    ]);
+    const parsed = JSON.parse(formatResultsJson(results));
+    const check = parsed.checks[0];
+    expect(check.type).toBe("lint");
+    expect(check.status).toBe("fail");
+    expect(check.title).toBe("Lint Check");
+    expect(check.summary).toBe("3 issues found");
+    expect(check.details.findings).toHaveLength(1);
+    expect(check.duration_ms).toBe(150);
+  });
+
+  test("includes aggregate fields", () => {
+    const results = makeResults([
+      { type: "secrets", status: "fail" },
+      { type: "lint", status: "warn" },
+    ]);
+    const parsed = JSON.parse(formatResultsJson(results));
+    expect(parsed.hasFailures).toBe(true);
+    expect(parsed.hasWarnings).toBe(true);
+    expect(parsed.failureCount).toBe(1);
+    expect(parsed.warningCount).toBe(1);
+  });
+
+  test("output is pretty-printed with 2-space indent", () => {
+    const results = makeResults([{ type: "secrets", status: "pass" }]);
+    const jsonStr = formatResultsJson(results);
+    expect(jsonStr).toContain("\n");
+    expect(jsonStr).toContain("  ");
   });
 });

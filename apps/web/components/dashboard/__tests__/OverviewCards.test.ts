@@ -1,55 +1,111 @@
 import { describe, test, expect } from "bun:test";
 
-// Test the data model and logic behind OverviewCards component
-const stats = [
-  { label: "Total Checks Today", value: "1,284", change: "+12%", changeType: "positive" },
-  { label: "Pass Rate", value: "94.2%", change: "+2.1%", changeType: "positive" },
-  { label: "Blocked Commits", value: "23", change: "-8%", changeType: "positive" },
-  { label: "Active Repos", value: "18", change: "+3", changeType: "neutral" },
-];
+/**
+ * Tests for OverviewCards stat computation logic.
+ * The component fetches from /api/analytics?range=7d and /api/repos,
+ * then computes totalChecks, passRate, blockedCommits, and activeRepos.
+ */
 
-describe("OverviewCards", () => {
-  test("renders correct counts for total checks, pass rate, blocked commits, active repos", () => {
-    expect(stats[0].label).toBe("Total Checks Today");
-    expect(stats[0].value).toBe("1,284");
-    expect(stats[1].label).toBe("Pass Rate");
-    expect(stats[1].value).toBe("94.2%");
-    expect(stats[2].label).toBe("Blocked Commits");
-    expect(stats[2].value).toBe("23");
-    expect(stats[3].label).toBe("Active Repos");
-    expect(stats[3].value).toBe("18");
+// Mirrors the computation from OverviewCards.tsx
+function computeStats(
+  analytics: { summary?: { total_runs?: number; passed?: number; failed?: number } },
+  repos: Array<{ is_active: boolean; [key: string]: unknown }>
+) {
+  const totalChecks = analytics.summary?.total_runs || 0;
+  const passed = analytics.summary?.passed || 0;
+  const passRate = totalChecks > 0 ? Math.round((passed / totalChecks) * 1000) / 10 : 0;
+  const blocked = analytics.summary?.failed || 0;
+
+  return {
+    totalChecks,
+    passRate,
+    blockedCommits: blocked,
+    activeRepos: Array.isArray(repos) ? repos.filter((r) => r.is_active).length : 0,
+  };
+}
+
+describe("OverviewCards - stat computation", () => {
+  test("computes totalChecks from analytics summary", () => {
+    const stats = computeStats({ summary: { total_runs: 150, passed: 100, failed: 50 } }, []);
+    expect(stats.totalChecks).toBe(150);
   });
 
-  test("pass rate displays as percentage with 1 decimal", () => {
-    const passRate = stats.find(s => s.label === "Pass Rate")!;
-    expect(passRate.value).toMatch(/^\d+\.\d%$/);
+  test("computes passRate rounded to 1 decimal place", () => {
+    const stats = computeStats({ summary: { total_runs: 3, passed: 2, failed: 1 } }, []);
+    // 2/3 = 0.6666... -> 66.7%
+    expect(stats.passRate).toBe(66.7);
   });
 
-  test("has exactly 4 stat cards", () => {
-    expect(stats.length).toBe(4);
+  test("passRate is 100 when all checks pass", () => {
+    const stats = computeStats({ summary: { total_runs: 50, passed: 50, failed: 0 } }, []);
+    expect(stats.passRate).toBe(100);
   });
 
-  test("zero state: cards would show 0 / 0% when no data", () => {
-    const emptyStats = [
-      { label: "Total Checks Today", value: "0" },
-      { label: "Pass Rate", value: "0.0%" },
-      { label: "Blocked Commits", value: "0" },
-      { label: "Active Repos", value: "0" },
+  test("passRate is 0 when no checks pass", () => {
+    const stats = computeStats({ summary: { total_runs: 10, passed: 0, failed: 10 } }, []);
+    expect(stats.passRate).toBe(0);
+  });
+
+  test("passRate is 0 when totalChecks is 0 (avoids division by zero)", () => {
+    const stats = computeStats({ summary: { total_runs: 0, passed: 0, failed: 0 } }, []);
+    expect(stats.passRate).toBe(0);
+  });
+
+  test("passRate handles fractional rounding correctly", () => {
+    // 1/7 = 0.142857... -> 14.3%
+    const stats = computeStats({ summary: { total_runs: 7, passed: 1, failed: 6 } }, []);
+    expect(stats.passRate).toBe(14.3);
+  });
+
+  test("passRate for 1/3 rounds to 33.3", () => {
+    const stats = computeStats({ summary: { total_runs: 3, passed: 1, failed: 2 } }, []);
+    expect(stats.passRate).toBe(33.3);
+  });
+
+  test("blockedCommits equals failed count from summary", () => {
+    const stats = computeStats({ summary: { total_runs: 100, passed: 80, failed: 20 } }, []);
+    expect(stats.blockedCommits).toBe(20);
+  });
+
+  test("activeRepos counts only repos with is_active true", () => {
+    const repos = [
+      { id: "1", is_active: true },
+      { id: "2", is_active: false },
+      { id: "3", is_active: true },
+      { id: "4", is_active: false },
+      { id: "5", is_active: true },
     ];
-    expect(emptyStats[0].value).toBe("0");
-    expect(emptyStats[1].value).toBe("0.0%");
+    const stats = computeStats({ summary: {} }, repos);
+    expect(stats.activeRepos).toBe(3);
   });
 
-  test("each card has an icon color and background", () => {
-    const cardConfigs = [
-      { iconColor: "text-blue-500", iconBg: "bg-blue-50" },
-      { iconColor: "text-emerald-500", iconBg: "bg-emerald-50" },
-      { iconColor: "text-red-500", iconBg: "bg-red-50" },
-      { iconColor: "text-violet-500", iconBg: "bg-violet-50" },
+  test("activeRepos is 0 when repos is not an array", () => {
+    // The component checks Array.isArray(repos)
+    const stats = computeStats({ summary: {} }, null as unknown as []);
+    expect(stats.activeRepos).toBe(0);
+  });
+
+  test("activeRepos is 0 when all repos are inactive", () => {
+    const repos = [
+      { id: "1", is_active: false },
+      { id: "2", is_active: false },
     ];
-    for (const config of cardConfigs) {
-      expect(config.iconColor).toBeTruthy();
-      expect(config.iconBg).toBeTruthy();
-    }
+    const stats = computeStats({ summary: {} }, repos);
+    expect(stats.activeRepos).toBe(0);
+  });
+
+  test("defaults to zeros when summary is missing", () => {
+    const stats = computeStats({}, []);
+    expect(stats.totalChecks).toBe(0);
+    expect(stats.passRate).toBe(0);
+    expect(stats.blockedCommits).toBe(0);
+    expect(stats.activeRepos).toBe(0);
+  });
+
+  test("defaults to zeros when summary fields are undefined", () => {
+    const stats = computeStats({ summary: {} }, []);
+    expect(stats.totalChecks).toBe(0);
+    expect(stats.passRate).toBe(0);
+    expect(stats.blockedCommits).toBe(0);
   });
 });
