@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export async function POST(request: NextRequest) {
   try {
     const { code } = await request.json();
+    const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "";
 
     if (!code) {
       return NextResponse.json(
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
           client_id: process.env.GITHUB_CLIENT_ID,
           client_secret: process.env.GITHUB_CLIENT_SECRET,
           code,
+          redirect_uri: `${origin}/callback`,
         }),
       }
     );
@@ -32,8 +34,9 @@ export async function POST(request: NextRequest) {
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
+      console.error("GitHub OAuth error:", tokenData);
       return NextResponse.json(
-        { error: tokenData.error_description || "OAuth exchange failed" },
+        { error: `${tokenData.error}: ${tokenData.error_description || "OAuth exchange failed"}` },
         { status: 400 }
       );
     }
@@ -58,8 +61,7 @@ export async function POST(request: NextRequest) {
       .upsert(
         {
           github_id: userData.id,
-          login: userData.login,
-          name: userData.name,
+          github_username: userData.login,
           avatar_url: userData.avatar_url,
           email: userData.email,
           access_token: accessToken,

@@ -1,4 +1,5 @@
 export { runCheckPipeline } from "./pipeline";
+export { parseConfig } from "./config/parser";
 export type {
   CheckResult,
   CheckRunResults,

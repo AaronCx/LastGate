@@ -89,8 +89,9 @@ function extractAnnotations(result: CheckResult): Annotation[] {
     || (details as { findings?: Annotation[] }).findings;
 
   if (Array.isArray(items)) {
-    return items.map((item) => {
-      const entry = item as Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return items.map((item: any) => {
+      const entry = item;
       return {
         file: (entry.file as string) || (entry.path as string) || "unknown",
         line: (entry.line as number) || 0,
