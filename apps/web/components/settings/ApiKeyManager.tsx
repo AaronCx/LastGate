@@ -1,59 +1,76 @@
 "use client";
 
-import { useState } from "react";
-import { Key, Trash2, Plus, Copy, Check } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Key, Trash2, Plus, Copy, Check, Terminal, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface ApiKey {
   id: string;
   name: string;
-  prefix: string;
-  created: string;
-  lastUsed: string | null;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
 }
 
-const initialKeys: ApiKey[] = [
-  {
-    id: "1",
-    name: "CLI - Development",
-    prefix: "lg_dev_a3f8",
-    created: "Jan 10, 2024",
-    lastUsed: "2 hours ago",
-  },
-  {
-    id: "2",
-    name: "CI Pipeline",
-    prefix: "lg_ci_d9e1",
-    created: "Jan 5, 2024",
-    lastUsed: "5 min ago",
-  },
-];
-
 export default function ApiKeyManager() {
-  const [keys, setKeys] = useState(initialKeys);
-  const [newKeyName, setNewKeyName] = useState("");
-  const [showNew, setShowNew] = useState(false);
+  const [keys, setKeys] = useState<ApiKey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const generateKey = () => {
-    if (!newKeyName.trim()) return;
-    const fakeKey = `lg_${newKeyName.toLowerCase().replace(/\s+/g, "_")}_${Math.random().toString(36).slice(2, 10)}`;
-    const newKey: ApiKey = {
-      id: String(keys.length + 1),
-      name: newKeyName,
-      prefix: fakeKey.slice(0, 12),
-      created: "Just now",
-      lastUsed: null,
-    };
-    setKeys((prev) => [...prev, newKey]);
-    setGeneratedKey(fakeKey);
-    setNewKeyName("");
-  };
+  const fetchKeys = useCallback(async () => {
+    try {
+      const res = await fetch("/api/cli/auth");
+      if (!res.ok) throw new Error("Failed to fetch API keys");
+      const data = await res.json();
+      // The GET endpoint returns device flow data, so keys come from a separate query
+      // For now, keys are listed via the api_keys table
+      setKeys(Array.isArray(data.data) ? data.data : []);
+    } catch {
+      // Keys may not be fetchable if no list endpoint exists yet
+      setKeys([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const revokeKey = (id: string) => {
-    setKeys((prev) => prev.filter((k) => k.id !== id));
+  useEffect(() => {
+    fetchKeys();
+  }, [fetchKeys]);
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      // Step 1: Initiate device flow
+      const deviceRes = await fetch("/api/cli/auth");
+      if (!deviceRes.ok) throw new Error("Failed to initiate device flow");
+      const deviceData = await deviceRes.json();
+
+      // Step 2: Exchange device code for API key
+      const authRes = await fetch("/api/cli/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ device_code: deviceData.device_code }),
+      });
+
+      if (!authRes.ok) {
+        const errData = await authRes.json();
+        throw new Error(errData.error || "Failed to generate key");
+      }
+
+      const { api_key } = await authRes.json();
+      setGeneratedKey(api_key);
+      setShowGenerate(false);
+      fetchKeys();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Key generation failed");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const copyKey = () => {
@@ -64,51 +81,110 @@ export default function ApiKeyManager() {
     }
   };
 
+  const revokeKey = async (id: string) => {
+    const res = await fetch(`/api/cli/auth?id=${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setKeys((prev) => prev.filter((k) => k.id !== id));
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const formatRelative = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
   return (
     <div className="space-y-4">
+      {/* CLI instructions */}
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <div className="flex items-start gap-3">
+          <Terminal className="h-5 w-5 text-gray-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-gray-900">
+              Authenticate via CLI
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              The recommended way to generate API keys is through the CLI device
+              flow. Run the following command:
+            </p>
+            <code className="block mt-2 text-xs font-mono bg-gray-900 text-gray-200 rounded px-3 py-2">
+              lastgate login
+            </code>
+          </div>
+        </div>
+      </div>
+
       {/* Existing keys */}
-      <div className="space-y-2">
-        {keys.map((key) => (
-          <div
-            key={key.id}
-            className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3"
-          >
-            <div className="flex items-center gap-3">
-              <Key className="h-4 w-4 text-gray-400" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">{key.name}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <code className="text-xs font-mono text-gray-500">
-                    {key.prefix}...
-                  </code>
-                  <span className="text-xs text-gray-400">
-                    Created {key.created}
-                  </span>
-                  {key.lastUsed && (
+      {loading ? (
+        <div className="flex items-center justify-center py-4 text-gray-400">
+          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          <span className="text-sm">Loading keys...</span>
+        </div>
+      ) : keys.length > 0 ? (
+        <div className="space-y-2">
+          {keys.map((key) => (
+            <div
+              key={key.id}
+              className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3"
+            >
+              <div className="flex items-center gap-3">
+                <Key className="h-4 w-4 text-gray-400" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {key.name}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <code className="text-xs font-mono text-gray-500">
+                      {key.key_prefix}...
+                    </code>
                     <span className="text-xs text-gray-400">
-                      Last used {key.lastUsed}
+                      Created {formatDate(key.created_at)}
                     </span>
-                  )}
+                    {key.last_used_at && (
+                      <span className="text-xs text-gray-400">
+                        Last used {formatRelative(key.last_used_at)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => revokeKey(key.id)}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => revokeKey(key.id)}
-              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-400 text-center py-2">
+          No API keys yet. Use the CLI or generate one below.
+        </p>
+      )}
 
       {/* Generated key display */}
       {generatedKey && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
           <p className="text-sm font-medium text-emerald-800 mb-2">
-            New API key generated — copy it now, it won&apos;t be shown again.
+            API key generated — copy it now, it won&apos;t be shown again.
           </p>
           <div className="flex items-center gap-2">
             <code className="flex-1 text-sm font-mono bg-white border border-emerald-200 rounded px-3 py-1.5 text-gray-900">
@@ -125,27 +201,31 @@ export default function ApiKeyManager() {
         </div>
       )}
 
-      {/* Generate new key */}
-      {showNew ? (
+      {/* Error display */}
+      {error && (
+        <div className="text-sm text-red-600 text-center">{error}</div>
+      )}
+
+      {/* Generate key button */}
+      {showGenerate ? (
         <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Key name (e.g., CLI - Production)"
-            value={newKeyName}
-            onChange={(e) => setNewKeyName(e.target.value)}
-            className="flex-1 h-9 rounded-md border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            onKeyDown={(e) => e.key === "Enter" && generateKey()}
-          />
-          <Button size="sm" onClick={generateKey}>
-            Generate
+          <p className="text-sm text-gray-600 flex-1">
+            This will start a device authorization flow to generate a key.
+          </p>
+          <Button size="sm" onClick={handleGenerate} disabled={generating}>
+            {generating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              "Confirm"
+            )}
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => {
-              setShowNew(false);
-              setNewKeyName("");
-            }}
+            onClick={() => setShowGenerate(false)}
           >
             Cancel
           </Button>
@@ -154,7 +234,7 @@ export default function ApiKeyManager() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setShowNew(true)}
+          onClick={() => setShowGenerate(true)}
         >
           <Plus className="h-3.5 w-3.5 mr-1.5" />
           Generate New Key

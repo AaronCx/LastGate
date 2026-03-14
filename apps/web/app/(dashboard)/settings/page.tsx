@@ -1,11 +1,42 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import RepoConfig from "@/components/settings/RepoConfig";
 import ApiKeyManager from "@/components/settings/ApiKeyManager";
 import NotificationPrefs from "@/components/settings/NotificationPrefs";
+import NotificationConfig from "@/components/settings/NotificationConfig";
+import BadgeGenerator from "@/components/settings/BadgeGenerator";
+
+interface Repo {
+  id: string;
+  full_name: string;
+}
 
 export default function SettingsPage() {
+  const [repos, setRepos] = useState<Repo[]>([]);
+  const [selectedRepoId, setSelectedRepoId] = useState<string>("");
+  const [selectedRepoName, setSelectedRepoName] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/repos")
+      .then((res) => res.json())
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setRepos(data);
+          setSelectedRepoId(data[0].id);
+          setSelectedRepoName(data[0].full_name);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const handleRepoSelect = (repoId: string) => {
+    setSelectedRepoId(repoId);
+    const repo = repos.find((r) => r.id === repoId);
+    if (repo) setSelectedRepoName(repo.full_name);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -96,6 +127,34 @@ export default function SettingsPage() {
             <NotificationPrefs />
           </CardContent>
         </Card>
+
+        {/* Per-repo Notification Config */}
+        {repos.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">
+                Repository:
+              </label>
+              <select
+                value={selectedRepoId}
+                onChange={(e) => handleRepoSelect(e.target.value)}
+                className="px-3 py-2 text-sm border rounded-lg bg-white"
+              >
+                {repos.map((repo) => (
+                  <option key={repo.id} value={repo.id}>
+                    {repo.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <NotificationConfig repoId={selectedRepoId} />
+          </div>
+        )}
+
+        {/* Badge Generator */}
+        {selectedRepoName && (
+          <BadgeGenerator repoFullName={selectedRepoName} />
+        )}
       </div>
     </div>
   );
