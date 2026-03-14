@@ -59,9 +59,8 @@ export default function DashboardLayout({
       });
   }, [router]);
 
-  function handleLogout() {
-    document.cookie =
-      "lastgate_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
   }
 
