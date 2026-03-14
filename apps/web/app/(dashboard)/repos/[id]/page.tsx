@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Fragment } from "react";
+import { useParams } from "next/navigation";
 import {
   CheckCircle,
   XCircle,
@@ -9,6 +10,7 @@ import {
   ChevronRight,
   ArrowLeft,
   Filter,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -16,117 +18,199 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface CheckResult {
-  name: string;
-  status: "passed" | "failed" | "warning";
-  message: string;
-  duration: string;
+  id: string;
+  check_type: string;
+  status: string;
+  title: string;
+  summary: string | null;
+  duration_ms: number | null;
 }
 
 interface CheckRun {
   id: string;
-  sha: string;
+  commit_sha: string;
   branch: string;
-  status: "passed" | "failed" | "warning";
-  message: string;
-  date: string;
-  agent: string | null;
-  results: CheckResult[];
+  status: string;
+  commit_message: string | null;
+  commit_author: string | null;
+  is_agent_commit: boolean;
+  agent_session_id: string | null;
+  total_checks: number;
+  passed_checks: number;
+  failed_checks: number;
+  warned_checks: number;
+  created_at: string;
+  completed_at: string | null;
+  results?: CheckResult[];
 }
 
-const checkHistory: CheckRun[] = [
-  {
-    id: "cr-1",
-    sha: "a3f8b2c",
-    branch: "main",
-    status: "passed",
-    message: "fix: resolve SSR hydration mismatch",
-    date: "2024-01-15 14:32",
-    agent: "Claude",
-    results: [
-      { name: "Secret Scanner", status: "passed", message: "No secrets detected", duration: "0.8s" },
-      { name: "Duplicate Detector", status: "passed", message: "No duplicates found", duration: "1.2s" },
-      { name: "Lint & Type Check", status: "passed", message: "0 errors, 0 warnings", duration: "2.1s" },
-      { name: "Build Verifier", status: "passed", message: "Build successful", duration: "4.3s" },
-      { name: "Dependency Audit", status: "passed", message: "All dependencies clean", duration: "0.5s" },
-      { name: "Agent Patterns", status: "passed", message: "No concerning patterns", duration: "0.3s" },
-    ],
-  },
-  {
-    id: "cr-2",
-    sha: "d9e1f4a",
-    branch: "feat/rate-limit",
-    status: "failed",
-    message: "feat: add rate limiting middleware",
-    date: "2024-01-15 14:20",
-    agent: "Cursor",
-    results: [
-      { name: "Secret Scanner", status: "failed", message: "Found 1 hardcoded API key in src/middleware/rate-limit.ts:23", duration: "0.9s" },
-      { name: "Duplicate Detector", status: "passed", message: "No duplicates found", duration: "1.1s" },
-      { name: "Lint & Type Check", status: "failed", message: "3 errors, 2 warnings", duration: "2.4s" },
-      { name: "Build Verifier", status: "passed", message: "Build successful", duration: "4.1s" },
-      { name: "Dependency Audit", status: "warning", message: "1 deprecated dependency: express-rate-limit@5.x", duration: "0.6s" },
-      { name: "Agent Patterns", status: "warning", message: "Similar pattern to previous failed commit", duration: "0.4s" },
-    ],
-  },
-  {
-    id: "cr-3",
-    sha: "b7c2e8d",
-    branch: "refactor/utils",
-    status: "warning",
-    message: "refactor: extract validation utils",
-    date: "2024-01-15 14:04",
-    agent: "Copilot",
-    results: [
-      { name: "Secret Scanner", status: "passed", message: "No secrets detected", duration: "0.7s" },
-      { name: "Duplicate Detector", status: "warning", message: "2 similar code blocks detected (82% similarity)", duration: "1.4s" },
-      { name: "Lint & Type Check", status: "passed", message: "0 errors, 1 warning", duration: "2.0s" },
-      { name: "Build Verifier", status: "passed", message: "Build successful", duration: "3.9s" },
-      { name: "Dependency Audit", status: "passed", message: "All dependencies clean", duration: "0.5s" },
-      { name: "Agent Patterns", status: "passed", message: "No concerning patterns", duration: "0.3s" },
-    ],
-  },
-  {
-    id: "cr-4",
-    sha: "e5f9a1b",
-    branch: "main",
-    status: "passed",
-    message: "feat: implement dark mode toggle",
-    date: "2024-01-15 13:47",
-    agent: "Claude",
-    results: [
-      { name: "Secret Scanner", status: "passed", message: "No secrets detected", duration: "0.8s" },
-      { name: "Duplicate Detector", status: "passed", message: "No duplicates found", duration: "1.0s" },
-      { name: "Lint & Type Check", status: "passed", message: "0 errors, 0 warnings", duration: "1.9s" },
-      { name: "Build Verifier", status: "passed", message: "Build successful", duration: "4.0s" },
-      { name: "Dependency Audit", status: "passed", message: "All dependencies clean", duration: "0.4s" },
-      { name: "Agent Patterns", status: "passed", message: "No concerning patterns", duration: "0.3s" },
-    ],
-  },
-];
+interface Repo {
+  id: string;
+  full_name: string;
+  default_branch: string;
+  is_active: boolean;
+}
 
-const statusConfig = {
-  passed: { icon: CheckCircle, color: "text-emerald-500", badge: "success" as const },
-  failed: { icon: XCircle, color: "text-red-500", badge: "destructive" as const },
-  warning: { icon: AlertTriangle, color: "text-amber-500", badge: "warning" as const },
+const statusConfig: Record<
+  string,
+  { icon: typeof CheckCircle; color: string; badge: "success" | "destructive" | "warning" | "default" }
+> = {
+  passed: { icon: CheckCircle, color: "text-emerald-500", badge: "success" },
+  pass: { icon: CheckCircle, color: "text-emerald-500", badge: "success" },
+  failed: { icon: XCircle, color: "text-red-500", badge: "destructive" },
+  fail: { icon: XCircle, color: "text-red-500", badge: "destructive" },
+  warning: { icon: AlertTriangle, color: "text-amber-500", badge: "warning" },
+  warn: { icon: AlertTriangle, color: "text-amber-500", badge: "warning" },
+  warned: { icon: AlertTriangle, color: "text-amber-500", badge: "warning" },
+  pending: { icon: AlertTriangle, color: "text-gray-400", badge: "default" },
+  running: { icon: AlertTriangle, color: "text-blue-400", badge: "default" },
 };
 
+const defaultStatusConfig = {
+  icon: AlertTriangle,
+  color: "text-gray-400",
+  badge: "default" as const,
+};
+
+function getConfig(status: string) {
+  return statusConfig[status] || defaultStatusConfig;
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatDuration(ms: number | null): string {
+  if (ms === null || ms === undefined) return "-";
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
 export default function RepoDetailPage() {
+  const params = useParams();
+  const repoId = params.id as string;
+
+  const [repo, setRepo] = useState<Repo | null>(null);
+  const [checkRuns, setCheckRuns] = useState<CheckRun[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [expandedLoading, setExpandedLoading] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const toggleRow = (id: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch the repo details from the repos list
+        const reposRes = await fetch("/api/repos");
+        if (!reposRes.ok) {
+          throw new Error(`Failed to fetch repository (${reposRes.status})`);
+        }
+        const reposJson = await reposRes.json();
+        const repos: Repo[] = reposJson.data || [];
+        const foundRepo = repos.find((r: Repo) => r.id === repoId);
+
+        if (!foundRepo) {
+          throw new Error("Repository not found");
+        }
+        setRepo(foundRepo);
+
+        // Fetch check runs for this repo using its full_name
+        const checksRes = await fetch(
+          `/api/checks?repo=${encodeURIComponent(foundRepo.full_name)}&limit=50`
+        );
+        if (!checksRes.ok) {
+          throw new Error(`Failed to fetch check runs (${checksRes.status})`);
+        }
+        const checksJson = await checksRes.json();
+        setCheckRuns(checksJson.data || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [repoId]);
+
+  const toggleRow = async (id: string) => {
+    const next = new Set(expandedRows);
+    if (next.has(id)) {
+      next.delete(id);
+      setExpandedRows(next);
+      return;
+    }
+
+    // Fetch detailed results for this check run if not already loaded
+    const run = checkRuns.find((r) => r.id === id);
+    if (run && !run.results) {
+      setExpandedLoading((prev) => new Set(prev).add(id));
+      try {
+        const res = await fetch(`/api/checks/${id}`);
+        if (res.ok) {
+          const detail = await res.json();
+          setCheckRuns((prev) =>
+            prev.map((r) =>
+              r.id === id ? { ...r, results: detail.results || [] } : r
+            )
+          );
+        }
+      } catch {
+        // Silently fail; the row will expand with no results
+      } finally {
+        setExpandedLoading((prev) => {
+          const s = new Set(prev);
+          s.delete(id);
+          return s;
+        });
+      }
+    }
+
+    next.add(id);
+    setExpandedRows(next);
   };
 
   const filtered =
     statusFilter === "all"
-      ? checkHistory
-      : checkHistory.filter((c) => c.status === statusFilter);
+      ? checkRuns
+      : checkRuns.filter((c) => c.status === statusFilter);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-sm text-gray-500">Loading repository details...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Link href="/repos">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Repository</h1>
+          </div>
+        </div>
+        <div className="text-center py-12">
+          <XCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -137,8 +221,12 @@ export default function RepoDetailPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">acme/frontend</h1>
-          <p className="text-sm text-gray-500">Next.js web application</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {repo?.full_name || "Repository"}
+          </h1>
+          <p className="text-sm text-gray-500">
+            Branch: {repo?.default_branch || "main"}
+          </p>
         </div>
       </div>
 
@@ -155,139 +243,158 @@ export default function RepoDetailPage() {
               <option value="all">All Statuses</option>
               <option value="passed">Passed</option>
               <option value="failed">Failed</option>
-              <option value="warning">Warning</option>
+              <option value="warned">Warning</option>
+              <option value="pending">Pending</option>
             </select>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2 w-8" />
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
-                    Commit
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
-                    Branch
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
-                    Status
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
-                    Checks
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
-                    Agent
-                  </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
-                    Date
-                  </th>
-                  <th className="py-3 px-2 w-8" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((run) => {
-                  const config = statusConfig[run.status];
-                  const StatusIcon = config.icon;
-                  const isExpanded = expandedRows.has(run.id);
-                  const passed = run.results.filter(
-                    (r) => r.status === "passed"
-                  ).length;
+          {checkRuns.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-gray-500">
+                No check runs found for this repository.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2 w-8" />
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                      Commit
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                      Branch
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                      Status
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                      Checks
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                      Author
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                      Date
+                    </th>
+                    <th className="py-3 px-2 w-8" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.map((run) => {
+                    const config = getConfig(run.status);
+                    const StatusIcon = config.icon;
+                    const isExpanded = expandedRows.has(run.id);
+                    const isLoadingDetail = expandedLoading.has(run.id);
 
-                  return (
-                    <>
-                      <tr
-                        key={run.id}
-                        className="hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => toggleRow(run.id)}
-                      >
-                        <td className="py-3 px-2">
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-400" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
-                          )}
-                        </td>
-                        <td className="py-3 px-2">
-                          <div>
-                            <code className="text-xs font-mono text-gray-500">
-                              {run.sha}
-                            </code>
-                            <p className="text-sm text-gray-900 truncate max-w-[200px]">
-                              {run.message}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-2">
-                          <code className="text-xs font-mono text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
-                            {run.branch}
-                          </code>
-                        </td>
-                        <td className="py-3 px-2">
-                          <Badge variant={config.badge}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {run.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-2 text-sm text-gray-600">
-                          {passed}/{run.results.length}
-                        </td>
-                        <td className="py-3 px-2 text-sm text-gray-600">
-                          {run.agent || "Human"}
-                        </td>
-                        <td className="py-3 px-2 text-sm text-gray-500">
-                          {run.date}
-                        </td>
-                        <td className="py-3 px-2">
-                          {run.status !== "passed" && (
-                            <Button size="sm" variant="outline" className="text-xs">
-                              Approve
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr key={`${run.id}-detail`}>
-                          <td colSpan={8} className="bg-gray-50 px-8 py-4">
-                            <div className="space-y-2">
-                              {run.results.map((result) => {
-                                const rConfig = statusConfig[result.status];
-                                const RIcon = rConfig.icon;
-                                return (
-                                  <div
-                                    key={result.name}
-                                    className="flex items-center justify-between rounded-lg bg-white border border-gray-200 px-4 py-2.5"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <RIcon
-                                        className={`h-4 w-4 ${rConfig.color}`}
-                                      />
-                                      <span className="text-sm font-medium text-gray-900">
-                                        {result.name}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                      <span className="text-sm text-gray-600">
-                                        {result.message}
-                                      </span>
-                                      <span className="text-xs text-gray-400">
-                                        {result.duration}
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                    return (
+                      <Fragment key={run.id}>
+                        <tr
+                          className="hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => toggleRow(run.id)}
+                        >
+                          <td className="py-3 px-2">
+                            {isLoadingDetail ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                            ) : isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-gray-400" />
+                            )}
+                          </td>
+                          <td className="py-3 px-2">
+                            <div>
+                              <code className="text-xs font-mono text-gray-500">
+                                {run.commit_sha?.substring(0, 7) || "-"}
+                              </code>
+                              <p className="text-sm text-gray-900 truncate max-w-[200px]">
+                                {run.commit_message || "(no message)"}
+                              </p>
                             </div>
                           </td>
+                          <td className="py-3 px-2">
+                            <code className="text-xs font-mono text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                              {run.branch}
+                            </code>
+                          </td>
+                          <td className="py-3 px-2">
+                            <Badge variant={config.badge}>
+                              <StatusIcon className="h-3 w-3 mr-1" />
+                              {run.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-2 text-sm text-gray-600">
+                            {run.passed_checks}/{run.total_checks}
+                          </td>
+                          <td className="py-3 px-2 text-sm text-gray-600">
+                            {run.commit_author || "Unknown"}
+                            {run.is_agent_commit && (
+                              <Badge variant="outline" className="ml-1 text-xs">
+                                Agent
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="py-3 px-2 text-sm text-gray-500">
+                            {formatDate(run.created_at)}
+                          </td>
+                          <td className="py-3 px-2">
+                            {run.status !== "passed" && run.status !== "pass" && (
+                              <Button size="sm" variant="outline" className="text-xs">
+                                Approve
+                              </Button>
+                            )}
+                          </td>
                         </tr>
-                      )}
-                    </>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {isExpanded && run.results && (
+                          <tr>
+                            <td colSpan={8} className="bg-gray-50 px-8 py-4">
+                              <div className="space-y-2">
+                                {run.results.length === 0 ? (
+                                  <p className="text-sm text-gray-500 text-center py-2">
+                                    No individual check results available.
+                                  </p>
+                                ) : (
+                                  run.results.map((result) => {
+                                    const rConfig = getConfig(result.status);
+                                    const RIcon = rConfig.icon;
+                                    return (
+                                      <div
+                                        key={result.id}
+                                        className="flex items-center justify-between rounded-lg bg-white border border-gray-200 px-4 py-2.5"
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <RIcon
+                                            className={`h-4 w-4 ${rConfig.color}`}
+                                          />
+                                          <span className="text-sm font-medium text-gray-900">
+                                            {result.title}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                          <span className="text-sm text-gray-600">
+                                            {result.summary || "-"}
+                                          </span>
+                                          <span className="text-xs text-gray-400">
+                                            {formatDuration(result.duration_ms)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
