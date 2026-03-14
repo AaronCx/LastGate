@@ -50,7 +50,7 @@ export default function PassRateTrend({ data }: PassRateTrendProps) {
         />
         <Tooltip
           contentStyle={{ fontSize: 12, borderRadius: 8 }}
-          formatter={(value: number) => [`${value}%`, "Pass Rate"]}
+          formatter={(value) => [`${value}%`, "Pass Rate"]}
           labelFormatter={(label) => {
             const d = new Date(label + "T00:00:00");
             return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
