@@ -7,6 +7,7 @@ export const CONFIG_TOOL = {
     type: "object" as const,
     properties: {
       repo: { type: "string", description: "Repository full name (e.g., AaronCx/AgentForge)" },
+      path: { type: "string", description: "Absolute path to the repo root on the local filesystem (used to read .lastgate.yml)" },
     },
     required: ["repo"],
   },
