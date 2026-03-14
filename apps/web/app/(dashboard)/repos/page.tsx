@@ -134,16 +134,10 @@ export default function ReposPage() {
             Manage connected repositories and their check configurations
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="shrink-0" onClick={syncRepos} disabled={syncing}>
-            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <GitFork className="h-4 w-4 mr-2" />}
-            {syncing ? "Syncing..." : "Sync Repos"}
-          </Button>
-          <Button className="shrink-0" onClick={handleConnectRepo}>
-            <Plus className="h-4 w-4 mr-2" />
-            Connect Repo
-          </Button>
-        </div>
+        <Button className="shrink-0" onClick={handleConnectRepo}>
+          <Plus className="h-4 w-4 mr-2" />
+          Connect Repo
+        </Button>
       </div>
 
       <div className="relative">
@@ -156,10 +150,12 @@ export default function ReposPage() {
         />
       </div>
 
-      {loading && (
+      {(loading || syncing) && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          <span className="ml-2 text-sm text-gray-500">Loading repositories...</span>
+          <span className="ml-2 text-sm text-gray-500">
+            {syncing ? "Syncing repositories from GitHub..." : "Loading repositories..."}
+          </span>
         </div>
       )}
 

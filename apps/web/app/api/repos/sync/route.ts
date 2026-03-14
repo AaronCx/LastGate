@@ -38,8 +38,9 @@ export async function POST() {
       page++;
     }
 
-    // Upsert all repos into the database
+    // Upsert all repos into the database (conflict on github_repo_id unique constraint)
     let synced = 0;
+    const errors: string[] = [];
     for (const repo of repos) {
       const { error } = await supabase
         .from("repos")
@@ -61,15 +62,20 @@ export async function POST() {
               },
             },
           },
-          { onConflict: "full_name" }
+          { onConflict: "github_repo_id" }
         );
 
-      if (!error) synced++;
+      if (error) {
+        errors.push(`${repo.full_name}: ${error.message}`);
+      } else {
+        synced++;
+      }
     }
 
     return NextResponse.json({
       synced,
       total: repos.length,
+      errors: errors.length > 0 ? errors : undefined,
       repos: repos.map((r) => r.full_name),
     });
   } catch (error) {
