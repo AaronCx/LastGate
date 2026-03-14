@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const secret = process.env.GITHUB_WEBHOOK_SECRET;
+    const secret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
     if (!secret) {
       console.error("[webhook] GITHUB_WEBHOOK_SECRET not set");
       return NextResponse.json(
@@ -113,6 +113,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    console.log(`[webhook] Secret length=${secret.length} sig_prefix=${signature.slice(0, 20)}`);
 
     const isValid = verifyWebhookSignature(body, signature, secret);
     if (!isValid) {
