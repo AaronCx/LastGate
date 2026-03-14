@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Shield,
   LayoutDashboard,
@@ -27,13 +28,40 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
+interface UserData {
+  github_username: string;
+  avatar_url: string;
+  email: string;
+}
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => {
+        if (!res.ok) throw new Error("Not authenticated");
+        return res.json();
+      })
+      .then((data) => setUser(data.user))
+      .catch(() => {
+        // Session invalid or missing — redirect to login
+        router.push("/login");
+      });
+  }, [router]);
+
+  function handleLogout() {
+    document.cookie =
+      "lastgate_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    router.push("/login");
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -91,16 +119,32 @@ export default function DashboardLayout({
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-gray-800 p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700">
-              <User className="h-4 w-4 text-gray-300" />
-            </div>
+            {user?.avatar_url ? (
+              <Image
+                src={user.avatar_url}
+                alt={user.github_username}
+                width={32}
+                height={32}
+                className="rounded-full"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700">
+                <User className="h-4 w-4 text-gray-300" />
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-200 truncate">
-                Developer
+                {user?.github_username || "Loading..."}
               </p>
-              <p className="text-xs text-gray-500 truncate">dev@example.com</p>
+              <p className="text-xs text-gray-500 truncate">
+                {user?.email || ""}
+              </p>
             </div>
-            <button className="text-gray-500 hover:text-gray-300 transition-colors">
+            <button
+              onClick={handleLogout}
+              className="text-gray-500 hover:text-gray-300 transition-colors"
+              title="Log out"
+            >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
@@ -121,9 +165,19 @@ export default function DashboardLayout({
           <div className="flex-1" />
 
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
-              <User className="h-4 w-4 text-gray-600" />
-            </div>
+            {user?.avatar_url ? (
+              <Image
+                src={user.avatar_url}
+                alt={user.github_username}
+                width={32}
+                height={32}
+                className="rounded-full"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+                <User className="h-4 w-4 text-gray-600" />
+              </div>
+            )}
           </div>
         </header>
 
