@@ -25,10 +25,10 @@ export default function OverviewCards() {
         const analytics = await analyticsRes.json();
         const repos = await reposRes.json();
 
-        const totalChecks = analytics.summary?.total_runs || 0;
-        const passed = analytics.summary?.passed || 0;
+        const totalChecks = analytics.summary?.totalRuns || 0;
+        const passed = analytics.summary?.passedRuns || 0;
         const passRate = totalChecks > 0 ? Math.round((passed / totalChecks) * 1000) / 10 : 0;
-        const blocked = analytics.summary?.failed || 0;
+        const blocked = analytics.summary?.failedRuns || 0;
 
         setStats({
           totalChecks,
