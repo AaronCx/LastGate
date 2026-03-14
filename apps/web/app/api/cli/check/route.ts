@@ -4,6 +4,8 @@ import { runCheckPipeline } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo } from "@lastgate/engine";
 import crypto from "crypto";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     // Verify API key

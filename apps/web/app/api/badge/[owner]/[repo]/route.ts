@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getStatusFromRuns, getDetailedStatus } from "@lastgate/engine/src/badge/status";
 import { generateBadgeSvg } from "@lastgate/engine/src/badge/svg";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { owner: string; repo: string } }

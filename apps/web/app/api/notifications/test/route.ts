@@ -4,6 +4,8 @@ import { buildSlackMessage, sendSlackNotification } from "@lastgate/engine/src/n
 import { buildDiscordEmbed, sendDiscordNotification } from "@lastgate/engine/src/notifications/discord";
 import type { NotificationPayload } from "@lastgate/engine/src/notifications/types";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient();
