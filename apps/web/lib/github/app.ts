@@ -1,10 +1,7 @@
 import { Octokit } from "octokit";
+import { createAppAuth } from "@octokit/auth-app";
 
-let cachedAppOctokit: Octokit | null = null;
-
-export function getAppOctokit(): Octokit {
-  if (cachedAppOctokit) return cachedAppOctokit;
-
+function getAppCredentials() {
   const appId = process.env.GITHUB_APP_ID;
   const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
 
@@ -14,11 +11,21 @@ export function getAppOctokit(): Octokit {
     );
   }
 
+  return { appId, privateKey: privateKey.replace(/\\n/g, "\n") };
+}
+
+let cachedAppOctokit: Octokit | null = null;
+
+export function getAppOctokit(): Octokit {
+  if (cachedAppOctokit) return cachedAppOctokit;
+
+  const { appId, privateKey } = getAppCredentials();
+
   cachedAppOctokit = new Octokit({
-    authStrategy: undefined, // Will be configured per-installation
+    authStrategy: createAppAuth,
     auth: {
       appId,
-      privateKey: privateKey.replace(/\\n/g, "\n"),
+      privateKey,
     },
   });
 
@@ -28,19 +35,21 @@ export function getAppOctokit(): Octokit {
 export async function getInstallationOctokit(
   installationId: number
 ): Promise<Octokit> {
-  const appId = process.env.GITHUB_APP_ID;
-  const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
+  const { appId, privateKey } = getAppCredentials();
 
-  if (!appId || !privateKey) {
-    throw new Error(
-      "Missing GitHub App credentials: GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY are required"
-    );
-  }
+  // Use JWT-based auth to obtain a scoped installation access token
+  const auth = createAppAuth({
+    appId,
+    privateKey,
+  });
 
-  // Create an installation-scoped token
-  // In production, use @octokit/app createAppAuth for proper JWT-based auth
+  const installationAuth = await auth({
+    type: "installation",
+    installationId,
+  });
+
   const octokit = new Octokit({
-    auth: process.env.GITHUB_APP_INSTALLATION_TOKEN, // Placeholder
+    auth: installationAuth.token,
   });
 
   return octokit;
