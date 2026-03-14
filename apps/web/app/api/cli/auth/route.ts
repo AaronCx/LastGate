@@ -5,18 +5,42 @@ import { randomBytes, createHash } from "crypto";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { device_code } = body;
+    const supabase = createServerSupabaseClient();
 
+    // Mode 1: Generate a key directly (from the web UI)
+    if (body.action === "generate") {
+      const rawKey = `lg_cli_${randomBytes(24).toString("hex")}`;
+      const keyHash = createHash("sha256").update(rawKey).digest("hex");
+
+      const { error: insertError } = await supabase.from("api_keys").insert({
+        name: body.name || `API Key - ${new Date().toISOString().split("T")[0]}`,
+        key_hash: keyHash,
+        key_prefix: rawKey.slice(0, 12),
+      });
+
+      if (insertError) {
+        console.error("API key insert error:", insertError);
+        return NextResponse.json(
+          { error: "Failed to generate API key" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        api_key: rawKey,
+        message: "API key generated. Store it securely — it won't be shown again.",
+      });
+    }
+
+    // Mode 2: Exchange device code for API key (CLI device flow)
+    const { device_code } = body;
     if (!device_code) {
       return NextResponse.json(
-        { error: "device_code is required" },
+        { error: "device_code or action is required" },
         { status: 400 }
       );
     }
 
-    const supabase = createServerSupabaseClient();
-
-    // Look up the device code
     const { data: deviceAuth, error: lookupError } = await supabase
       .from("device_auth")
       .select("*")
@@ -31,7 +55,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate API key
     const rawKey = `lg_cli_${randomBytes(24).toString("hex")}`;
     const keyHash = createHash("sha256").update(rawKey).digest("hex");
 
@@ -39,8 +62,7 @@ export async function POST(request: NextRequest) {
       user_id: deviceAuth.user_id,
       name: `CLI - ${new Date().toISOString().split("T")[0]}`,
       key_hash: keyHash,
-      prefix: rawKey.slice(0, 12),
-      revoked: false,
+      key_prefix: rawKey.slice(0, 12),
     });
 
     if (insertError) {
@@ -50,7 +72,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mark device auth as consumed
     await supabase
       .from("device_auth")
       .update({ status: "consumed" })
@@ -69,39 +90,48 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint for initiating device flow
+// GET endpoint: list API keys
 export async function GET() {
   try {
     const supabase = createServerSupabaseClient();
 
-    const deviceCode = randomBytes(4).toString("hex").toUpperCase();
-    const userCode = `${randomBytes(2).toString("hex").toUpperCase()}-${randomBytes(2).toString("hex").toUpperCase()}`;
-
-    const { error } = await supabase.from("device_auth").insert({
-      device_code: deviceCode,
-      user_code: userCode,
-      status: "pending",
-      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 min
-    });
+    const { data, error } = await supabase
+      .from("api_keys")
+      .select("id, name, key_prefix, created_at, last_used_at")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      return NextResponse.json(
-        { error: "Failed to create device auth" },
-        { status: 500 }
-      );
+      console.error("API keys fetch error:", error);
+      return NextResponse.json({ data: [] });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-    return NextResponse.json({
-      device_code: deviceCode,
-      user_code: userCode,
-      verification_uri: `${baseUrl}/cli/authorize`,
-      expires_in: 900,
-      interval: 5,
-    });
+    return NextResponse.json({ data: data || [] });
   } catch (error) {
-    console.error("Device flow error:", error);
+    console.error("API keys error:", error);
+    return NextResponse.json({ data: [] });
+  }
+}
+
+// DELETE endpoint: revoke an API key
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    }
+
+    const supabase = createServerSupabaseClient();
+    const { error } = await supabase.from("api_keys").delete().eq("id", id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Delete API key error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

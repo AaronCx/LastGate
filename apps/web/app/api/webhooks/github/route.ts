@@ -6,6 +6,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { runCheckPipeline } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo } from "@lastgate/engine";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 60; // Allow up to 60s for pipeline processing
+
 async function fetchChangedFiles(
   octokit: Awaited<ReturnType<typeof getInstallationOctokit>>,
   owner: string,
@@ -89,8 +92,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
     const signature = request.headers.get("x-hub-signature-256");
+    const event = request.headers.get("x-github-event");
+    const deliveryId = request.headers.get("x-github-delivery");
+
+    console.log(`[webhook] Received event="${event}" delivery="${deliveryId}" body_length=${body.length}`);
 
     if (!signature) {
+      console.log("[webhook] Missing signature header");
       return NextResponse.json(
         { error: "Missing signature" },
         { status: 401 }
@@ -99,6 +107,7 @@ export async function POST(request: NextRequest) {
 
     const secret = process.env.GITHUB_WEBHOOK_SECRET;
     if (!secret) {
+      console.error("[webhook] GITHUB_WEBHOOK_SECRET not set");
       return NextResponse.json(
         { error: "Webhook secret not configured" },
         { status: 500 }
@@ -107,13 +116,15 @@ export async function POST(request: NextRequest) {
 
     const isValid = verifyWebhookSignature(body, signature, secret);
     if (!isValid) {
+      console.log("[webhook] Invalid signature — secret mismatch");
       return NextResponse.json(
         { error: "Invalid signature" },
         { status: 401 }
       );
     }
 
-    const event = request.headers.get("x-github-event");
+    console.log(`[webhook] Signature valid, processing event="${event}"`);
+
     const payload = JSON.parse(body);
     const supabase = createServerSupabaseClient();
 
@@ -121,10 +132,10 @@ export async function POST(request: NextRequest) {
       return await handleCheckEvent(event, payload, supabase);
     }
 
-    // Acknowledge unhandled events
+    console.log(`[webhook] Ignoring event="${event}"`);
     return NextResponse.json({ ok: true, event, action: "ignored" });
   } catch (error) {
-    console.error("Webhook error:", error);
+    console.error("[webhook] Unhandled error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -142,11 +153,14 @@ async function handleCheckEvent(
   )?.id as number | undefined;
 
   if (!installationId) {
+    console.log("[webhook] No installation ID in payload");
     return NextResponse.json(
       { error: "No installation ID" },
       { status: 400 }
     );
   }
+
+  console.log(`[webhook] installationId=${installationId}`);
 
   // Extract event-specific data
   const repository = payload.repository as Record<string, unknown>;
@@ -184,22 +198,33 @@ async function handleCheckEvent(
     triggerEvent = "pull_request";
   }
 
+  console.log(`[webhook] Processing ${event} for ${repoFullName} branch=${branch} sha=${headSha.slice(0, 8)}`);
+
   const octokit = await getInstallationOctokit(installationId);
 
   // Create a GitHub Check Run
-  const checkRun = await createCheckRun({
+  let checkRun;
+  try {
+    checkRun = await createCheckRun({
     installationId,
     owner: repoOwner,
     repo: repoName,
     headSha,
     name: "LastGate Check Pipeline",
   });
+    console.log(`[webhook] GitHub Check Run created id=${checkRun.id}`);
+  } catch (err) {
+    console.error("[webhook] Failed to create GitHub Check Run:", err);
+    // Continue without GitHub Check Run — still store in Supabase
+    checkRun = { id: 0 };
+  }
 
   // Find or create repo record in Supabase
   const repoId = await findOrCreateRepo(supabase, repoFullName, installationId);
+  console.log(`[webhook] repoId=${repoId}`);
 
   // Insert check_runs record
-  const { data: checkRunRecord } = await supabase
+  const { data: checkRunRecord, error: insertError } = await supabase
     .from("check_runs")
     .insert({
       repo_id: repoId,
@@ -215,8 +240,15 @@ async function handleCheckEvent(
     .select("id")
     .single();
 
+  if (insertError) {
+    console.error("[webhook] Failed to insert check_runs:", insertError);
+  } else {
+    console.log(`[webhook] check_runs record created id=${checkRunRecord?.id}`);
+  }
+
   // Fetch changed files from GitHub
   const files = await fetchChangedFiles(octokit, repoOwner, repoName, headSha);
+  console.log(`[webhook] Fetched ${files.length} changed files`);
 
   // Build commit info
   const commits: CommitInfo[] = [
@@ -251,6 +283,7 @@ async function handleCheckEvent(
     config: repoConfig,
   });
   const duration = Math.round(performance.now() - startTime);
+  console.log(`[webhook] Pipeline completed in ${duration}ms — ${pipelineResult.checks.length} checks, failures=${pipelineResult.failureCount}, warnings=${pipelineResult.warningCount}`);
 
   // Determine GitHub conclusion
   const conclusion = pipelineResult.hasFailures

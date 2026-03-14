@@ -45,24 +45,18 @@ export default function ApiKeyManager() {
     setGenerating(true);
     setError(null);
     try {
-      // Step 1: Initiate device flow
-      const deviceRes = await fetch("/api/cli/auth");
-      if (!deviceRes.ok) throw new Error("Failed to initiate device flow");
-      const deviceData = await deviceRes.json();
-
-      // Step 2: Exchange device code for API key
-      const authRes = await fetch("/api/cli/auth", {
+      const res = await fetch("/api/cli/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ device_code: deviceData.device_code }),
+        body: JSON.stringify({ action: "generate" }),
       });
 
-      if (!authRes.ok) {
-        const errData = await authRes.json();
+      if (!res.ok) {
+        const errData = await res.json();
         throw new Error(errData.error || "Failed to generate key");
       }
 
-      const { api_key } = await authRes.json();
+      const { api_key } = await res.json();
       setGeneratedKey(api_key);
       setShowGenerate(false);
       fetchKeys();
