@@ -20,11 +20,26 @@ export async function GET(request: NextRequest) {
       .range((page - 1) * limit, page * limit - 1);
 
     if (repo) {
-      query = query.eq("repo_full_name", repo);
+      // Look up the repo by full_name to get its UUID
+      const { data: repoData } = await supabase
+        .from("repos")
+        .select("id")
+        .eq("full_name", repo)
+        .single();
+
+      if (repoData) {
+        query = query.eq("repo_id", repoData.id);
+      } else {
+        // No matching repo — return empty
+        return NextResponse.json({
+          data: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        });
+      }
     }
 
     if (status) {
-      query = query.eq("conclusion", status);
+      query = query.eq("status", status);
     }
 
     if (from) {
