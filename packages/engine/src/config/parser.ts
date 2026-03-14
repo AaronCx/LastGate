@@ -49,5 +49,5 @@ export function parseConfig(yaml: string): PipelineConfig {
   return deepMerge(
     defaults as unknown as Record<string, unknown>,
     validated as unknown as Record<string, unknown>,
-  ) as PipelineConfig;
+  ) as unknown as PipelineConfig;
 }
