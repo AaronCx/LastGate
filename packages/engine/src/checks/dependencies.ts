@@ -1,20 +1,22 @@
+import { execFile } from "node:child_process";
 import type { ChangedFile, CheckResult, DependencyCheckConfig } from "../types";
 
 async function runCommand(command: string, cwd?: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const parts = command.split(/\s+/);
-  const proc = Bun.spawn(parts, {
-    cwd: cwd ?? process.cwd(),
-    stdout: "pipe",
-    stderr: "pipe",
+  const [cmd, ...args] = parts;
+
+  return new Promise((resolve) => {
+    const child = execFile(cmd, args, {
+      cwd: cwd ?? process.cwd(),
+      maxBuffer: 10 * 1024 * 1024,
+    }, (error, stdout, stderr) => {
+      resolve({
+        exitCode: error ? (child.exitCode ?? 1) : 0,
+        stdout: stdout || "",
+        stderr: stderr || "",
+      });
+    });
   });
-
-  const [stdout, stderr] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-  ]);
-
-  const exitCode = await proc.exited;
-  return { stdout, stderr, exitCode };
 }
 
 interface VulnerabilityFinding {

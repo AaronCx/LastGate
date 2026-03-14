@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import type { CheckResult, BuildCheckConfig } from "../types";
 
 export async function checkBuild(
@@ -8,23 +9,28 @@ export async function checkBuild(
   const cwd = (config as BuildCheckConfig & { cwd?: string }).cwd ?? process.cwd();
 
   const parts = command.split(/\s+/);
+  const [cmd, ...args] = parts;
 
   try {
-    const proc = Bun.spawn(parts, {
-      cwd,
-      stdout: "pipe",
-      stderr: "pipe",
+    const { exitCode, stdout, stderr } = await new Promise<{
+      exitCode: number;
+      stdout: string;
+      stderr: string;
+    }>((resolve) => {
+      const child = execFile(cmd, args, { cwd, timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+        if (error && "killed" in error && error.killed) {
+          resolve({ exitCode: -1, stdout: stdout || "", stderr: stderr || "" });
+          return;
+        }
+        resolve({
+          exitCode: error?.code ? Number(error.code) || 1 : child.exitCode ?? 0,
+          stdout: stdout || "",
+          stderr: stderr || "",
+        });
+      });
     });
 
-    const timeoutPromise = new Promise<"timeout">((resolve) => {
-      setTimeout(() => resolve("timeout"), timeoutMs);
-    });
-
-    const exitPromise = proc.exited;
-    const result = await Promise.race([exitPromise, timeoutPromise]);
-
-    if (result === "timeout") {
-      proc.kill();
+    if (exitCode === -1) {
       return {
         type: "build",
         status: "fail",
@@ -33,13 +39,6 @@ export async function checkBuild(
         details: { command, timeout: true, timeoutSeconds: config.timeout ?? 120 },
       };
     }
-
-    const [stdout, stderr] = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-    ]);
-
-    const exitCode = result as number;
 
     if (exitCode === 0) {
       return {
