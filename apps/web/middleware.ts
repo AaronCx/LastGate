@@ -5,10 +5,12 @@ export function middleware(request: NextRequest) {
 
   // Protect dashboard routes
   const protectedPaths = [
+    "/overview",
     "/repos",
     "/activity",
     "/analytics",
     "/review",
+    "/team",
     "/settings",
   ];
 
@@ -29,11 +31,11 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect logged-in users from login page to dashboard
-  if (pathname === "/login") {
+  // Redirect logged-in users from login page or landing page to dashboard
+  if (pathname === "/login" || pathname === "/") {
     const session = request.cookies.get("lastgate_session");
     if (session?.value) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(new URL("/overview", request.url));
     }
   }
 

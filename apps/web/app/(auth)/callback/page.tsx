@@ -29,7 +29,7 @@ function CallbackContent() {
           throw new Error(data.error || "Authentication failed");
         }
 
-        router.push("/");
+        router.push("/repos");
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Authentication failed"

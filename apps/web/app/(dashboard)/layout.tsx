@@ -15,16 +15,18 @@ import {
   Menu,
   X,
   User,
+  Users,
   BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { name: "Overview", href: "/", icon: LayoutDashboard },
+  { name: "Overview", href: "/overview", icon: LayoutDashboard },
   { name: "Repos", href: "/repos", icon: GitFork },
   { name: "Activity", href: "/activity", icon: Activity },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Review", href: "/review", icon: ClipboardCheck },
+  { name: "Team", href: "/team", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
