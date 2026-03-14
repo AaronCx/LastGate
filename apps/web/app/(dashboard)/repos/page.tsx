@@ -65,22 +65,51 @@ export default function ReposPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchRepos() {
-      try {
-        const res = await fetch("/api/repos");
-        if (!res.ok) {
-          throw new Error(`Failed to fetch repositories (${res.status})`);
-        }
-        const json = await res.json();
-        setRepos(json.data || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load repositories");
-      } finally {
-        setLoading(false);
+  const [syncing, setSyncing] = useState(false);
+
+  async function fetchRepos() {
+    try {
+      const res = await fetch("/api/repos");
+      if (!res.ok) {
+        throw new Error(`Failed to fetch repositories (${res.status})`);
       }
+      const json = await res.json();
+      const data = json.data || [];
+      setRepos(data);
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load repositories");
+      return [];
+    } finally {
+      setLoading(false);
     }
-    fetchRepos();
+  }
+
+  async function syncRepos() {
+    setSyncing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/repos/sync", { method: "POST" });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || "Sync failed");
+      }
+      await fetchRepos();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sync repositories");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchRepos().then((data) => {
+      // Auto-sync from GitHub if no repos in database yet
+      if (data.length === 0) {
+        syncRepos();
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = repos.filter((r) =>
@@ -89,7 +118,7 @@ export default function ReposPage() {
 
   const handleConnectRepo = () => {
     // Open the GitHub App installation page
-    const githubAppSlug = process.env.NEXT_PUBLIC_GITHUB_APP_SLUG || "lastgate";
+    const githubAppSlug = process.env.NEXT_PUBLIC_GITHUB_APP_SLUG || "lastgate-app";
     window.open(
       `https://github.com/apps/${githubAppSlug}/installations/new`,
       "_blank"
@@ -105,10 +134,16 @@ export default function ReposPage() {
             Manage connected repositories and their check configurations
           </p>
         </div>
-        <Button className="shrink-0" onClick={handleConnectRepo}>
-          <Plus className="h-4 w-4 mr-2" />
-          Connect Repo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="shrink-0" onClick={syncRepos} disabled={syncing}>
+            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <GitFork className="h-4 w-4 mr-2" />}
+            {syncing ? "Syncing..." : "Sync Repos"}
+          </Button>
+          <Button className="shrink-0" onClick={handleConnectRepo}>
+            <Plus className="h-4 w-4 mr-2" />
+            Connect Repo
+          </Button>
+        </div>
       </div>
 
       <div className="relative">
