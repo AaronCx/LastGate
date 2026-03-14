@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -7,78 +8,145 @@ import {
   Clock,
   ExternalLink,
   Bot,
+  Loader2,
+  Inbox,
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const pendingReviews = [
-  {
-    id: "run-101",
-    repo: "acme/api-server",
-    prTitle: "feat: add rate limiting middleware",
-    prNumber: 142,
-    branch: "feat/rate-limit",
-    status: "failed" as const,
-    failureCount: 2,
-    warningCount: 1,
-    agent: "Cursor",
-    timestamp: "12 min ago",
-    checks: {
-      secrets: "failed",
-      lint: "failed",
-      deps: "warning",
-    },
-  },
-  {
-    id: "run-102",
-    repo: "acme/shared-lib",
-    prTitle: "refactor: extract validation utils",
-    prNumber: 87,
-    branch: "refactor/utils",
-    status: "warning" as const,
-    failureCount: 0,
-    warningCount: 2,
-    agent: "Copilot",
-    timestamp: "28 min ago",
-    checks: {
-      duplicates: "warning",
-      lint: "warning",
-    },
-  },
-  {
-    id: "run-103",
-    repo: "acme/frontend",
-    prTitle: "feat: implement OAuth2 PKCE flow",
-    prNumber: 256,
-    branch: "feat/oauth-pkce",
-    status: "failed" as const,
-    failureCount: 1,
-    warningCount: 0,
-    agent: "Devin",
-    timestamp: "1 hour ago",
-    checks: {
-      build: "failed",
-    },
-  },
-  {
-    id: "run-104",
-    repo: "acme/analytics",
-    prTitle: "fix: correct event tracking payload",
-    prNumber: 34,
-    branch: "fix/event-tracking",
-    status: "warning" as const,
-    failureCount: 0,
-    warningCount: 1,
-    agent: "Claude",
-    timestamp: "2 hours ago",
-    checks: {
-      patterns: "warning",
-    },
-  },
-];
+interface CheckRun {
+  id: string;
+  repo_id: string;
+  commit_sha: string;
+  pr_number: number | null;
+  branch: string;
+  trigger_event: string;
+  status: string;
+  started_at: string;
+  completed_at: string | null;
+  total_checks: number;
+  passed_checks: number;
+  failed_checks: number;
+  warned_checks: number;
+  commit_message: string | null;
+  commit_author: string | null;
+  is_agent_commit: boolean;
+  agent_session_id: string | null;
+  created_at: string;
+}
+
+interface ApiResponse {
+  data: CheckRun[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+function timeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+}
 
 export default function ReviewPage() {
+  const [checkRuns, setCheckRuns] = useState<CheckRun[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchChecks() {
+      try {
+        const res = await fetch("/api/checks?status=failed&limit=20");
+        if (!res.ok) {
+          throw new Error(`Failed to fetch checks: ${res.status}`);
+        }
+        const json: ApiResponse = await res.json();
+        setCheckRuns(json.data || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load checks");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchChecks();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Pending Reviews</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Pull requests flagged by LastGate that require human review
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          <span className="ml-2 text-sm text-gray-500">Loading checks...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Pending Reviews</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Pull requests flagged by LastGate that require human review
+          </p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <XCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
+            <p className="text-sm font-medium text-gray-900">
+              Failed to load checks
+            </p>
+            <p className="text-xs text-gray-500 mt-1">{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (checkRuns.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Pending Reviews</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Pull requests flagged by LastGate that require human review
+          </p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Inbox className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm font-medium text-gray-900">
+              No checks need review
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              All check runs are passing. Check back later.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -98,13 +166,13 @@ export default function ReviewPage() {
                     Status
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                    Repository
+                    Branch
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                    Pull Request
+                    Commit
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                    Agent
+                    Author
                   </th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
                     Issues
@@ -116,62 +184,77 @@ export default function ReviewPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {pendingReviews.map((review) => (
+                {checkRuns.map((run) => (
                   <tr
-                    key={review.id}
+                    key={run.id}
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="py-3 px-4">
-                      {review.status === "failed" ? (
+                      {run.failed_checks > 0 ? (
                         <Badge variant="destructive">
                           <XCircle className="h-3 w-3 mr-1" />
                           Failed
                         </Badge>
-                      ) : (
+                      ) : run.warned_checks > 0 ? (
                         <Badge variant="warning">
                           <AlertTriangle className="h-3 w-3 mr-1" />
                           Warning
                         </Badge>
+                      ) : (
+                        <Badge variant="destructive">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          {run.status}
+                        </Badge>
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-sm font-medium text-gray-900">
-                        {review.repo}
-                      </span>
+                      <div>
+                        <code className="text-xs font-mono text-gray-700 bg-gray-100 px-1 py-0.5 rounded">
+                          {run.branch}
+                        </code>
+                        {run.pr_number && (
+                          <span className="text-xs text-gray-500 ml-2">
+                            #{run.pr_number}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4">
                       <div>
                         <span className="text-sm text-gray-900">
-                          {review.prTitle}
+                          {run.commit_message
+                            ? run.commit_message.length > 60
+                              ? run.commit_message.slice(0, 60) + "..."
+                              : run.commit_message
+                            : run.commit_sha.slice(0, 8)}
                         </span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-gray-500">
-                            #{review.prNumber}
-                          </span>
-                          <code className="text-xs font-mono text-gray-400 bg-gray-100 px-1 py-0.5 rounded">
-                            {review.branch}
+                        <div className="mt-0.5">
+                          <code className="text-xs font-mono text-gray-400">
+                            {run.commit_sha.slice(0, 8)}
                           </code>
                         </div>
                       </div>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5">
-                        <Bot className="h-3.5 w-3.5 text-gray-400" />
+                        {run.is_agent_commit && (
+                          <Bot className="h-3.5 w-3.5 text-gray-400" />
+                        )}
                         <span className="text-sm text-gray-600">
-                          {review.agent}
+                          {run.commit_author || "Unknown"}
                         </span>
                       </div>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        {review.failureCount > 0 && (
+                        {run.failed_checks > 0 && (
                           <span className="text-xs font-medium text-red-600">
-                            {review.failureCount} failed
+                            {run.failed_checks} failed
                           </span>
                         )}
-                        {review.warningCount > 0 && (
+                        {run.warned_checks > 0 && (
                           <span className="text-xs font-medium text-amber-600">
-                            {review.warningCount} warnings
+                            {run.warned_checks} warnings
                           </span>
                         )}
                       </div>
@@ -179,11 +262,11 @@ export default function ReviewPage() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1 text-xs text-gray-400">
                         <Clock className="h-3 w-3" />
-                        {review.timestamp}
+                        {timeAgo(run.created_at)}
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <Link href={`/review/${review.id}`}>
+                      <Link href={`/review/${run.id}`}>
                         <Button size="sm" variant="outline" className="text-xs">
                           Review
                           <ExternalLink className="h-3 w-3 ml-1" />
