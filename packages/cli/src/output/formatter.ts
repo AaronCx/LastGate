@@ -73,26 +73,42 @@ export function formatCheckResults(results: CheckRunResults): string {
       lines.push("");
       lines.push(`${statusIcon(check.status)} ${bold(check.type)}`);
 
-      const findings = (check.details as Record<string, unknown>).findings as Array<{
-        severity?: string;
-        file?: string;
-        line?: number;
-        message?: string;
-      }>;
+      const findings = (check.details as Record<string, unknown>).findings as Array<
+        Record<string, unknown>
+      >;
 
       for (const finding of findings) {
+        // Map severity from engine formats to display
+        const sev = String(finding.severity || "info").toLowerCase();
         const severity =
-          finding.severity === "error"
-            ? error("ERROR")
-            : finding.severity === "warning"
-              ? warning("WARN")
+          sev === "critical" || sev === "high" || sev === "error" || sev === "fail"
+            ? error(sev.toUpperCase())
+            : sev === "medium" || sev === "warning" || sev === "warn"
+              ? warning(sev.toUpperCase())
               : dim("INFO");
 
-        const location = finding.file
-          ? dim(` ${finding.file}${finding.line ? `:${finding.line}` : ""}`)
-          : "";
+        // Build location from file/line or commit
+        const file = finding.file || finding.path;
+        const line = finding.line || finding.start_line;
+        const location = file
+          ? dim(` ${file}${line ? `:${line}` : ""}`)
+          : finding.commit
+            ? dim(` commit:${finding.commit}`)
+            : "";
 
-        lines.push(`  ${severity}${location} ${finding.message || ""}`);
+        // Build message from various field names used by different checks
+        const message =
+          finding.issue ||           // commit_message check
+          finding.pattern ||         // secrets check (pattern name)
+          finding.details ||         // agent_patterns check
+          (finding.blockedBy ? `Blocked pattern: ${finding.blockedBy}` : "") ||
+          finding.message ||         // generic
+          "";
+
+        // Show redacted match for secrets if available
+        const matchInfo = finding.match ? dim(` [${finding.match}]`) : "";
+
+        lines.push(`  ${severity}${location} ${message}${matchInfo}`);
       }
     }
 

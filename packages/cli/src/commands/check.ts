@@ -14,6 +14,7 @@ interface CheckOptions {
   branch?: string;
   json?: boolean;
   verbose?: boolean;
+  force?: boolean;
 }
 
 async function loadConfig(): Promise<Record<string, unknown> | undefined> {
@@ -27,7 +28,22 @@ async function loadConfig(): Promise<Record<string, unknown> | undefined> {
   }
 }
 
+async function isGitRepo(): Promise<boolean> {
+  try {
+    const { execSync } = await import("child_process");
+    execSync("git rev-parse --git-dir", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function runCheck(options: CheckOptions): Promise<void> {
+  if (!(await isGitRepo())) {
+    console.error(error("\n✖ Not a git repository.\n  Run this command from inside a git repo, or run `git init` first.\n"));
+    process.exit(1);
+  }
+
   const spinner = ora("Gathering changes...").start();
 
   try {
@@ -63,7 +79,12 @@ async function runCheck(options: CheckOptions): Promise<void> {
 
     // Determine current branch
     const { execSync } = await import("child_process");
-    const branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf-8" }).trim();
+    let branch = "main";
+    try {
+      branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf-8" }).trim();
+    } catch {
+      // No HEAD yet (empty repo) — use default
+    }
 
     // Determine repo name from git remote
     let repoFullName = "local/repo";
@@ -84,6 +105,28 @@ async function runCheck(options: CheckOptions): Promise<void> {
       config: config as any,
     };
 
+    // Apply --only filter: disable all checks except the specified ones
+    if (options.only) {
+      const allowedChecks = new Set(options.only.split(",").map((s) => s.trim()));
+      const allCheckKeys = [
+        "secrets", "file_patterns", "commit_message", "duplicates",
+        "lint", "build", "dependencies", "agent_patterns",
+      ];
+      if (!input.config) input.config = {};
+      if (!(input.config as Record<string, any>).checks) {
+        (input.config as Record<string, any>).checks = {};
+      }
+      const checks = (input.config as Record<string, any>).checks;
+      for (const key of allCheckKeys) {
+        if (!allowedChecks.has(key)) {
+          checks[key] = { ...(checks[key] || {}), enabled: false };
+        } else {
+          // Ensure allowed checks have enabled: true (so they aren't overridden by a partial config)
+          checks[key] = { ...(checks[key] || {}), enabled: true };
+        }
+      }
+    }
+
     // Run the pipeline
     const results = await runCheckPipeline(input);
 
@@ -96,10 +139,13 @@ async function runCheck(options: CheckOptions): Promise<void> {
       console.log(formatCheckResults(results));
     }
 
-    // Exit with code 1 if any failures
+    // Exit with code 1 if any failures (unless --force)
     const hasFailures = results.checks.some((c) => c.status === "fail");
-    if (hasFailures) {
+    if (hasFailures && !options.force) {
       process.exit(1);
+    }
+    if (hasFailures && options.force) {
+      console.log("\n⚠ Force mode: failures are non-blocking (exit 0)\n");
     }
   } catch (err) {
     spinner.fail("Check failed");
@@ -116,5 +162,6 @@ export function registerCheckCommand(program: Command): void {
     .option("--branch <branch>", "Compare against a target branch instead of staged changes")
     .option("--json", "Output results as JSON")
     .option("--verbose", "Show detailed output")
+    .option("--force", "Report failures but exit 0 (non-blocking)")
     .action(runCheck);
 }
