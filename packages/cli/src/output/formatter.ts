@@ -26,14 +26,14 @@ export function formatCheckResults(results: CheckRunResults): string {
   lines.push(dim(SEPARATOR));
 
   const maxNameLen = Math.max(
-    ...results.checks.map((c) => c.name.length),
+    ...results.checks.map((c) => c.type.length),
     12
   );
 
   for (const check of results.checks) {
     const icon = statusIcon(check.status);
-    const name = padRight(check.name, maxNameLen + 2);
-    const message = check.summary || "";
+    const name = padRight(check.type, maxNameLen + 2);
+    const message = check.summary || check.title || "";
 
     lines.push(`${icon} ${name} ${message}`);
   }
@@ -59,10 +59,11 @@ export function formatCheckResults(results: CheckRunResults): string {
 
   lines.push("");
 
-  // Detailed findings
-  const checksWithFindings = results.checks.filter(
-    (c) => c.findings && c.findings.length > 0
-  );
+  // Detailed findings from annotations
+  const checksWithFindings = results.checks.filter((c) => {
+    const findings = (c.details as Record<string, unknown>)?.findings as unknown[];
+    return findings && Array.isArray(findings) && findings.length > 0;
+  });
 
   if (checksWithFindings.length > 0) {
     lines.push(bold("Findings"));
@@ -70,9 +71,16 @@ export function formatCheckResults(results: CheckRunResults): string {
 
     for (const check of checksWithFindings) {
       lines.push("");
-      lines.push(`${statusIcon(check.status)} ${bold(check.name)}`);
+      lines.push(`${statusIcon(check.status)} ${bold(check.type)}`);
 
-      for (const finding of check.findings!) {
+      const findings = (check.details as Record<string, unknown>).findings as Array<{
+        severity?: string;
+        file?: string;
+        line?: number;
+        message?: string;
+      }>;
+
+      for (const finding of findings) {
         const severity =
           finding.severity === "error"
             ? error("ERROR")
@@ -84,7 +92,7 @@ export function formatCheckResults(results: CheckRunResults): string {
           ? dim(` ${finding.file}${finding.line ? `:${finding.line}` : ""}`)
           : "";
 
-        lines.push(`  ${severity}${location} ${finding.message}`);
+        lines.push(`  ${severity}${location} ${finding.message || ""}`);
       }
     }
 

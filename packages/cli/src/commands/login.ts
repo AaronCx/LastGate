@@ -6,7 +6,7 @@ import { success, error, dim, bold, info } from "../output/colors";
 
 const CONFIG_DIR = resolve(homedir(), ".lastgate");
 const CONFIG_PATH = resolve(CONFIG_DIR, "config.json");
-const DASHBOARD_LOGIN_URL = "https://app.lastgate.dev/cli/login";
+const DASHBOARD_LOGIN_URL = `${process.env.LASTGATE_API_URL || "https://lastgate.vercel.app"}/api/cli/auth`;
 
 interface CliConfig {
   token?: string;

@@ -47,31 +47,31 @@ function parseDiffContent(
   }
 
   return nameStatusEntries.map((entry) => {
-    let changeType: ChangedFile["changeType"];
+    let status: ChangedFile["status"];
     switch (entry.status[0]) {
       case "A":
-        changeType = "added";
+        status = "added";
         break;
       case "D":
-        changeType = "deleted";
+        status = "removed";
         break;
       case "M":
-        changeType = "modified";
+        status = "modified";
         break;
       case "R":
-        changeType = "renamed";
-        break;
-      case "C":
-        changeType = "copied";
+        status = "renamed";
         break;
       default:
-        changeType = "modified";
+        status = "modified";
     }
+
+    const patch = fileMap.get(entry.path) || "";
 
     return {
       path: entry.path,
-      changeType,
-      diff: fileMap.get(entry.path) || "",
+      status,
+      content: patch,
+      patch,
     };
   });
 }

@@ -30,13 +30,10 @@ function parseLogOutput(output: string): CommitInfo[] {
     const [hash, authorName, authorEmail, subject, ...bodyLines] = lines;
 
     commits.push({
-      hash: hash.trim(),
-      author: {
-        name: authorName.trim(),
-        email: authorEmail.trim(),
-      },
+      sha: hash.trim(),
+      author: `${authorName.trim()} <${authorEmail.trim()}>`,
       message: subject.trim(),
-      body: bodyLines.join("\n").trim() || undefined,
+      timestamp: new Date().toISOString(),
     });
   }
 

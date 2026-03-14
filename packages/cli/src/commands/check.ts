@@ -3,7 +3,7 @@ import ora from "ora";
 import { readFile } from "fs/promises";
 import { resolve } from "path";
 import { runCheckPipeline } from "@lastgate/engine";
-import type { CheckPipelineInput } from "@lastgate/engine";
+import type { PipelineInput, CommitInfo } from "@lastgate/engine";
 import { getStagedDiff, getBranchDiff } from "../git/diff";
 import { getCurrentCommitInfo } from "../git/commits";
 import { formatCheckResults, formatResultsJson } from "../output/formatter";
@@ -44,32 +44,45 @@ async function runCheck(options: CheckOptions): Promise<void> {
     spinner.text = `Found ${changedFiles.length} changed file${changedFiles.length !== 1 ? "s" : ""}. Running checks...`;
 
     // Get commit info
-    let commitInfo;
+    let commits: CommitInfo[];
     try {
-      commitInfo = await getCurrentCommitInfo();
+      const commitInfo = await getCurrentCommitInfo();
+      commits = [commitInfo];
     } catch {
       // No commits yet — provide a placeholder
-      commitInfo = {
-        hash: "0000000",
-        author: { name: "unknown", email: "unknown" },
+      commits = [{
+        sha: "0000000",
+        author: "unknown",
         message: "",
-      };
+        timestamp: new Date().toISOString(),
+      }];
     }
 
     // Load config
     const config = await loadConfig();
 
-    // Build pipeline input
-    const input: CheckPipelineInput = {
-      changedFiles,
-      commitInfo,
-      config,
-    };
+    // Determine current branch
+    const { execSync } = await import("child_process");
+    const branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf-8" }).trim();
 
-    // Filter checks if --only specified
-    if (options.only) {
-      input.onlyChecks = options.only.split(",").map((c) => c.trim());
+    // Determine repo name from git remote
+    let repoFullName = "local/repo";
+    try {
+      const remoteUrl = execSync("git remote get-url origin", { encoding: "utf-8" }).trim();
+      const match = remoteUrl.match(/[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?$/);
+      if (match) repoFullName = `${match[1]}/${match[2]}`;
+    } catch {
+      // no remote — use default
     }
+
+    // Build pipeline input
+    const input: PipelineInput = {
+      files: changedFiles,
+      commits,
+      branch,
+      repoFullName,
+      config: config as any,
+    };
 
     // Run the pipeline
     const results = await runCheckPipeline(input);

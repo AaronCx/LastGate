@@ -4,7 +4,7 @@ import { loadCliConfig, CONFIG_PATH } from "./login";
 import { error, dim, bold, success, warning, info } from "../output/colors";
 import { PASS, FAIL, WARN } from "../output/colors";
 
-const API_BASE = "https://api.lastgate.dev";
+const API_BASE = process.env.LASTGATE_API_URL || "https://lastgate.vercel.app";
 
 interface HistoryOptions {
   repo?: string;
@@ -71,7 +71,7 @@ async function runHistory(options: HistoryOptions): Promise<void> {
     params.set("limit", options.limit);
     if (options.repo) params.set("repo", options.repo);
 
-    const url = `${API_BASE}/v1/checks/history?${params.toString()}`;
+    const url = `${API_BASE}/api/checks?${params.toString()}`;
 
     const response = await fetch(url, {
       headers: {
