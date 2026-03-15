@@ -80,7 +80,7 @@ export default function NotificationConfig({ repoId }: NotificationConfigProps) 
   };
 
   return (
-    <Card>
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg flex items-center gap-2">
           <Bell className="h-4 w-4" />
@@ -96,12 +96,12 @@ export default function NotificationConfig({ repoId }: NotificationConfigProps) 
       </CardHeader>
       <CardContent className="space-y-4">
         {showAdd && (
-          <div className="p-4 rounded-lg border border-gray-200 space-y-3">
+          <div className="p-4 rounded-lg border border-lg-border space-y-3">
             <div className="flex gap-2">
               <select
                 value={newProvider}
                 onChange={(e) => setNewProvider(e.target.value as "slack" | "discord")}
-                className="px-3 py-2 text-sm border rounded-lg"
+                className="px-3 py-2 text-sm border border-lg-border rounded-lg bg-lg-surface text-lg-text"
               >
                 <option value="slack">Slack</option>
                 <option value="discord">Discord</option>
@@ -109,7 +109,7 @@ export default function NotificationConfig({ repoId }: NotificationConfigProps) 
               <select
                 value={newNotifyOn}
                 onChange={(e) => setNewNotifyOn(e.target.value)}
-                className="px-3 py-2 text-sm border rounded-lg"
+                className="px-3 py-2 text-sm border border-lg-border rounded-lg bg-lg-surface text-lg-text"
               >
                 <option value="fail_only">Failures only</option>
                 <option value="fail_and_warn">Failures & warnings</option>
@@ -121,7 +121,7 @@ export default function NotificationConfig({ repoId }: NotificationConfigProps) 
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
               placeholder="Webhook URL"
-              className="w-full px-3 py-2 text-sm border rounded-lg"
+              className="w-full px-3 py-2 text-sm border border-lg-border rounded-lg bg-lg-surface text-lg-text"
             />
             <div className="flex gap-2">
               <button
@@ -132,7 +132,7 @@ export default function NotificationConfig({ repoId }: NotificationConfigProps) 
               </button>
               <button
                 onClick={() => setShowAdd(false)}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg border text-gray-600 hover:bg-gray-50"
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-lg-border text-lg-text-secondary hover:bg-lg-surface-2"
               >
                 Cancel
               </button>
@@ -141,40 +141,40 @@ export default function NotificationConfig({ repoId }: NotificationConfigProps) 
         )}
 
         {loading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
+          <p className="text-sm text-lg-text-muted">Loading...</p>
         ) : configs.length === 0 ? (
-          <p className="text-sm text-gray-400">No notification webhooks configured</p>
+          <p className="text-sm text-lg-text-muted">No notification webhooks configured</p>
         ) : (
           configs.map((config) => (
             <div
               key={config.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-gray-50"
+              className="flex items-center justify-between p-3 rounded-lg bg-lg-surface-2"
             >
               <div>
-                <p className="text-sm font-medium text-gray-700 capitalize">
+                <p className="text-sm font-medium text-lg-text-secondary capitalize">
                   {config.provider}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-lg-text-muted">
                   {config.notify_on.replace("_", " ")} &middot; {config.throttle_minutes}m throttle
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 {testResult && testingId === null && (
-                  <span className={`text-xs ${testResult === "sent" ? "text-green-600" : "text-red-600"}`}>
+                  <span className={`text-xs ${testResult === "sent" ? "text-lg-pass" : "text-lg-fail"}`}>
                     {testResult === "sent" ? "Sent!" : "Failed"}
                   </span>
                 )}
                 <button
                   onClick={() => handleTest(config.id)}
                   disabled={testingId === config.id}
-                  className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                  className="p-1.5 text-lg-text-muted hover:text-lg-accent transition-colors"
                   title="Send test notification"
                 >
                   <TestTube className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(config.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                  className="p-1.5 text-lg-text-muted hover:text-lg-fail transition-colors"
                   title="Delete webhook"
                 >
                   <Trash2 className="h-4 w-4" />

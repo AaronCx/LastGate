@@ -129,8 +129,8 @@ export default function ReposPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Repositories</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-lg-text">Repositories</h1>
+          <p className="text-sm text-lg-text-muted mt-1">
             Manage connected repositories and their check configurations
           </p>
         </div>
@@ -141,7 +141,7 @@ export default function ReposPage() {
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-lg-text-muted" />
         <Input
           placeholder="Search repositories..."
           value={search}
@@ -152,8 +152,8 @@ export default function ReposPage() {
 
       {(loading || syncing) && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          <span className="ml-2 text-sm text-gray-500">
+          <Loader2 className="h-6 w-6 animate-spin text-lg-text-muted" />
+          <span className="ml-2 text-sm text-lg-text-muted">
             {syncing ? "Syncing repositories from GitHub..." : "Loading repositories..."}
           </span>
         </div>
@@ -162,14 +162,14 @@ export default function ReposPage() {
       {error && (
         <div className="text-center py-12">
           <XCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-lg-fail">{error}</p>
         </div>
       )}
 
       {!loading && !error && filtered.length === 0 && (
         <div className="text-center py-12">
-          <GitFork className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">
+          <GitFork className="h-8 w-8 text-lg-text-muted mx-auto mb-2" />
+          <p className="text-sm text-lg-text-muted">
             {repos.length === 0
               ? "No repositories connected yet. Click \"Connect Repo\" to get started."
               : "No repositories match your search."}
@@ -186,12 +186,12 @@ export default function ReposPage() {
             const StatusIcon = status.icon;
             return (
               <Link key={repo.id} href={`/repos/${repo.id}`}>
-                <Card className="hover:shadow-md hover:border-blue-200 transition-all cursor-pointer h-full">
+                <Card className="hover:shadow-md hover:border-lg-accent/20 transition-all cursor-pointer h-full">
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <GitFork className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm font-semibold text-gray-900">
+                        <GitFork className="h-4 w-4 text-lg-text-muted" />
+                        <span className="text-sm font-semibold text-lg-text">
                           {repo.full_name}
                         </span>
                       </div>
@@ -199,17 +199,17 @@ export default function ReposPage() {
                         className={`h-2.5 w-2.5 rounded-full ${healthColors[health]}`}
                       />
                     </div>
-                    <p className="text-sm text-gray-500 mb-4">
+                    <p className="text-sm text-lg-text-muted mb-4">
                       Branch: {repo.default_branch}
                     </p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <StatusIcon className={`h-3.5 w-3.5 ${status.color}`} />
-                        <span className="text-xs font-medium text-gray-600">
+                        <span className="text-xs font-medium text-lg-text-secondary">
                           {repo.is_active ? "Active" : "Inactive"}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <div className="flex items-center gap-3 text-xs text-lg-text-muted">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {formatTimeSince(repo.created_at)}

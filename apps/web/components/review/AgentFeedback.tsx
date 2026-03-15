@@ -20,7 +20,7 @@ export default function AgentFeedback({ agent, failedChecks }: AgentFeedbackProp
   );
 
   return (
-    <Card>
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />
@@ -28,19 +28,19 @@ export default function AgentFeedback({ agent, failedChecks }: AgentFeedbackProp
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-xs text-gray-500 mb-3">
+        <p className="text-xs text-lg-text-muted mb-3">
           This feedback is automatically posted to the PR comment on every check run.
         </p>
         {failedChecks.length === 0 ? (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-emerald-200">
-              <Bot className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-semibold text-gray-900">
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
+            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-emerald-500/20">
+              <Bot className="h-4 w-4 text-lg-accent" />
+              <span className="text-sm font-semibold text-lg-text">
                 LastGate Bot
               </span>
-              <span className="text-xs text-gray-400">just now</span>
+              <span className="text-xs text-lg-text-muted">just now</span>
             </div>
-            <div className="flex items-center gap-2 text-emerald-700">
+            <div className="flex items-center gap-2 text-lg-pass">
               <CheckCircle className="h-5 w-5" />
               <p className="text-sm font-medium">
                 All checks passed. No issues found for <strong>@{agent}</strong>.
@@ -48,15 +48,15 @@ export default function AgentFeedback({ agent, failedChecks }: AgentFeedbackProp
             </div>
           </div>
         ) : (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200">
-              <Bot className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-semibold text-gray-900">
+          <div className="rounded-lg border border-lg-border bg-lg-surface-2 p-4">
+            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-lg-border">
+              <Bot className="h-4 w-4 text-lg-accent" />
+              <span className="text-sm font-semibold text-lg-text">
                 LastGate Bot
               </span>
-              <span className="text-xs text-gray-400">just now</span>
+              <span className="text-xs text-lg-text-muted">just now</span>
             </div>
-            <div className="prose prose-sm max-w-none text-gray-700">
+            <div className="prose prose-sm max-w-none text-lg-text-secondary">
               <p className="text-sm mb-2">
                 Hey <strong>@{agent}</strong>, LastGate found some issues with this
                 PR that need to be fixed before it can be merged:
@@ -70,7 +70,7 @@ export default function AgentFeedback({ agent, failedChecks }: AgentFeedbackProp
                   }} />
                 ))}
               </div>
-              <p className="text-sm text-gray-500 italic">
+              <p className="text-sm text-lg-text-muted italic">
                 Please address these issues and push a new commit. LastGate will
                 re-run all checks automatically.
               </p>

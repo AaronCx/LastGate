@@ -37,9 +37,9 @@ export default function CostTracker({
   return (
     <div className="grid grid-cols-2 gap-3">
       {stats.map((stat) => (
-        <div key={stat.label} className="p-3 rounded-lg bg-gray-50 text-center">
-          <p className="text-lg font-bold text-gray-900">{stat.value}</p>
-          <p className="text-xs text-gray-500">{stat.label}</p>
+        <div key={stat.label} className="p-3 rounded-lg bg-lg-surface-2 text-center">
+          <p className="text-lg font-bold text-lg-text">{stat.value}</p>
+          <p className="text-xs text-lg-text-muted">{stat.label}</p>
         </div>
       ))}
     </div>

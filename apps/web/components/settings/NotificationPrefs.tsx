@@ -91,7 +91,7 @@ export default function NotificationPrefs() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8 text-gray-400">
+      <div className="flex items-center justify-center py-8 text-lg-text-muted">
         <Loader2 className="h-5 w-5 animate-spin mr-2" />
         <span className="text-sm">Loading notification settings...</span>
       </div>
@@ -100,14 +100,14 @@ export default function NotificationPrefs() {
 
   if (error && configs.length === 0) {
     return (
-      <div className="text-sm text-red-600 py-4 text-center">{error}</div>
+      <div className="text-sm text-lg-fail py-4 text-center">{error}</div>
     );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-lg-text-muted">
           <Bell className="h-4 w-4" />
           <span>Webhook notifications for check results</span>
         </div>
@@ -121,12 +121,12 @@ export default function NotificationPrefs() {
       </div>
 
       {showAdd && (
-        <div className="p-4 rounded-lg border border-gray-200 space-y-3">
+        <div className="p-4 rounded-lg border border-lg-border space-y-3">
           <div className="flex gap-2">
             <select
               value={newProvider}
               onChange={(e) => setNewProvider(e.target.value as "slack" | "discord")}
-              className="px-3 py-2 text-sm border rounded-lg"
+              className="px-3 py-2 text-sm border border-lg-border rounded-lg bg-lg-surface text-lg-text"
             >
               <option value="slack">Slack</option>
               <option value="discord">Discord</option>
@@ -134,7 +134,7 @@ export default function NotificationPrefs() {
             <select
               value={newNotifyOn}
               onChange={(e) => setNewNotifyOn(e.target.value)}
-              className="px-3 py-2 text-sm border rounded-lg"
+              className="px-3 py-2 text-sm border border-lg-border rounded-lg bg-lg-surface text-lg-text"
             >
               <option value="fail_only">Failures only</option>
               <option value="fail_and_warn">Failures & warnings</option>
@@ -146,7 +146,7 @@ export default function NotificationPrefs() {
             value={newUrl}
             onChange={(e) => setNewUrl(e.target.value)}
             placeholder="Webhook URL"
-            className="w-full px-3 py-2 text-sm border rounded-lg"
+            className="w-full px-3 py-2 text-sm border border-lg-border rounded-lg bg-lg-surface text-lg-text"
           />
           <div className="flex gap-2">
             <button
@@ -157,7 +157,7 @@ export default function NotificationPrefs() {
             </button>
             <button
               onClick={() => setShowAdd(false)}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg border text-gray-600 hover:bg-gray-50"
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-lg-border text-lg-text-secondary hover:bg-lg-surface-2"
             >
               Cancel
             </button>
@@ -166,11 +166,11 @@ export default function NotificationPrefs() {
       )}
 
       {error && (
-        <div className="text-sm text-red-600 text-center">{error}</div>
+        <div className="text-sm text-lg-fail text-center">{error}</div>
       )}
 
       {configs.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-4">
+        <p className="text-sm text-lg-text-muted text-center py-4">
           No notification webhooks configured yet.
         </p>
       ) : (
@@ -178,13 +178,13 @@ export default function NotificationPrefs() {
           {configs.map((config) => (
             <div
               key={config.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-gray-50"
+              className="flex items-center justify-between p-3 rounded-lg bg-lg-surface-2"
             >
               <div>
-                <p className="text-sm font-medium text-gray-700 capitalize">
+                <p className="text-sm font-medium text-lg-text-secondary capitalize">
                   {config.provider}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-lg-text-muted">
                   {config.notify_on.replace(/_/g, " ")} &middot;{" "}
                   {config.throttle_minutes}m throttle
                 </p>
@@ -194,8 +194,8 @@ export default function NotificationPrefs() {
                   <span
                     className={`text-xs ${
                       testResult[config.id] === "sent"
-                        ? "text-green-600"
-                        : "text-red-600"
+                        ? "text-lg-pass"
+                        : "text-lg-fail"
                     }`}
                   >
                     {testResult[config.id] === "sent" ? "Sent!" : "Failed"}
@@ -204,14 +204,14 @@ export default function NotificationPrefs() {
                 <button
                   onClick={() => handleTest(config.id)}
                   disabled={testingId === config.id}
-                  className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+                  className="p-1.5 text-lg-text-muted hover:text-lg-accent transition-colors disabled:opacity-50"
                   title="Send test notification"
                 >
                   <TestTube className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(config.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                  className="p-1.5 text-lg-text-muted hover:text-lg-fail transition-colors"
                   title="Delete webhook"
                 >
                   <Trash2 className="h-4 w-4" />

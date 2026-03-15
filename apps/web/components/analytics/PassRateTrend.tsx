@@ -1,24 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, AreaChart } from "@tremor/react";
 
-const data = [
-  { date: "Mar 1", passRate: 85, checkCount: 15, failCount: 2 },
-  { date: "Mar 2", passRate: 92, checkCount: 22, failCount: 2 },
-  { date: "Mar 3", passRate: 78, checkCount: 21, failCount: 5 },
-  { date: "Mar 4", passRate: 100, checkCount: 23, failCount: 0 },
-  { date: "Mar 5", passRate: 91, checkCount: 33, failCount: 3 },
-  { date: "Mar 6", passRate: 95, checkCount: 20, failCount: 1 },
-  { date: "Mar 7", passRate: 93, checkCount: 28, failCount: 2 },
-  { date: "Mar 8", passRate: 97, checkCount: 34, failCount: 1 },
-  { date: "Mar 9", passRate: 90, checkCount: 31, failCount: 3 },
-  { date: "Mar 10", passRate: 95, checkCount: 40, failCount: 2 },
-  { date: "Mar 11", passRate: 100, checkCount: 30, failCount: 0 },
-  { date: "Mar 12", passRate: 97, checkCount: 34, failCount: 1 },
-  { date: "Mar 13", passRate: 95, checkCount: 42, failCount: 2 },
-  { date: "Mar 14", passRate: 98, checkCount: 44, failCount: 1 },
-];
+interface DailyData {
+  day: string;
+  total: number;
+  passed: number;
+  failed: number;
+  warned: number;
+  passRate: number;
+}
+
+interface ChartRow {
+  date: string;
+  passRate: number;
+  checkCount: number;
+  failCount: number;
+}
 
 const metrics = {
   passRate: { label: "Pass Rate %", color: "emerald" as const, format: (v: number) => `${v}%` },
@@ -26,46 +25,119 @@ const metrics = {
   failCount: { label: "Failures", color: "red" as const, format: (v: number) => `${v}` },
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function PassRateTrend(_props?: { data?: any[] }) {
+function ChartSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="h-5 w-40 bg-lg-surface-2 rounded animate-pulse" />
+        <div className="flex gap-1">
+          <div className="h-7 w-20 bg-lg-surface-2 rounded animate-pulse" />
+          <div className="h-7 w-20 bg-lg-surface-2 rounded animate-pulse" />
+          <div className="h-7 w-20 bg-lg-surface-2 rounded animate-pulse" />
+        </div>
+      </div>
+      <div className="h-80 bg-lg-surface-2 rounded animate-pulse" />
+    </div>
+  );
+}
+
+export default function PassRateTrend({ range = "7d" }: { range?: string }) {
+  const [data, setData] = useState<ChartRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [metric, setMetric] = useState<keyof typeof metrics>("passRate");
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/analytics?range=${range}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch analytics");
+        return res.json();
+      })
+      .then((json) => {
+        const daily: DailyData[] = json.dailyPassRate || [];
+        const mapped: ChartRow[] = daily.map((d) => ({
+          date: new Date(d.day).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          passRate: d.passRate,
+          checkCount: d.total,
+          failCount: d.failed,
+        }));
+        setData(mapped);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load trend data");
+      })
+      .finally(() => setLoading(false));
+  }, [range]);
+
   const m = metrics[metric];
 
   return (
     <Card className="!bg-lg-surface !border-lg-border !ring-0">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-sans font-semibold text-lg-text">
-          Pass Rate Over Time
-        </h3>
-        <div className="flex gap-1">
-          {(Object.keys(metrics) as Array<keyof typeof metrics>).map((key) => (
-            <button
-              key={key}
-              onClick={() => setMetric(key)}
-              className={`px-3 py-1 text-xs font-mono rounded-md transition-colors ${
-                metric === key
-                  ? "bg-lg-accent/20 text-lg-accent"
-                  : "text-lg-text-muted hover:text-lg-text hover:bg-lg-surface-2"
-              }`}
-            >
-              {metrics[key].label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <AreaChart
-        data={data}
-        index="date"
-        categories={[metric]}
-        colors={[m.color]}
-        valueFormatter={m.format}
-        showLegend={false}
-        showGridLines={false}
-        showAnimation={true}
-        curveType="monotone"
-        className="h-80"
-        yAxisWidth={48}
-      />
+      {loading ? (
+        <ChartSkeleton />
+      ) : error ? (
+        <>
+          <h3 className="font-sans font-semibold text-lg-text mb-4">
+            Pass Rate Over Time
+          </h3>
+          <div className="flex items-center justify-center h-80">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        </>
+      ) : data.length === 0 ? (
+        <>
+          <h3 className="font-sans font-semibold text-lg-text mb-4">
+            Pass Rate Over Time
+          </h3>
+          <div className="flex items-center justify-center h-80">
+            <div className="text-center">
+              <p className="text-sm text-lg-text-muted">No trend data yet</p>
+              <p className="text-xs text-lg-text-muted mt-1">
+                Pass rate trends will appear once checks start running
+              </p>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-sans font-semibold text-lg-text">
+              Pass Rate Over Time
+            </h3>
+            <div className="flex gap-1">
+              {(Object.keys(metrics) as Array<keyof typeof metrics>).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setMetric(key)}
+                  className={`px-3 py-1 text-xs font-mono rounded-md transition-colors ${
+                    metric === key
+                      ? "bg-lg-accent/20 text-lg-accent"
+                      : "text-lg-text-muted hover:text-lg-text hover:bg-lg-surface-2"
+                  }`}
+                >
+                  {metrics[key].label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <AreaChart
+            data={data}
+            index="date"
+            categories={[metric]}
+            colors={[m.color]}
+            valueFormatter={m.format}
+            showLegend={false}
+            showGridLines={false}
+            showAnimation={true}
+            curveType="monotone"
+            className="h-80"
+            yAxisWidth={48}
+          />
+        </>
+      )}
     </Card>
   );
 }

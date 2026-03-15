@@ -138,8 +138,8 @@ export default function TeamPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Teams</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-lg-text">Teams</h1>
+          <p className="text-sm text-lg-text-muted mt-1">
             Manage your teams, members, and review the audit log
           </p>
         </div>
@@ -155,13 +155,13 @@ export default function TeamPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-500/10 p-3 text-sm text-lg-fail">
           {error}
         </div>
       )}
 
       {/* Create Team */}
-      <Card>
+      <Card className="!bg-lg-surface !border-lg-border !ring-0">
         <CardHeader>
           <CardTitle className="text-lg">Create a Team</CardTitle>
           <CardDescription>
@@ -171,7 +171,7 @@ export default function TeamPage() {
         <CardContent>
           <form onSubmit={handleCreateTeam} className="flex items-end gap-4">
             <div className="flex-1 space-y-1">
-              <label htmlFor="team-name" className="text-sm font-medium text-gray-700">
+              <label htmlFor="team-name" className="text-sm font-medium text-lg-text-secondary">
                 Name
               </label>
               <input
@@ -180,12 +180,12 @@ export default function TeamPage() {
                 value={newTeamName}
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="My Team"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-lg-border bg-lg-surface px-3 py-2 text-sm text-lg-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 required
               />
             </div>
             <div className="flex-1 space-y-1">
-              <label htmlFor="team-slug" className="text-sm font-medium text-gray-700">
+              <label htmlFor="team-slug" className="text-sm font-medium text-lg-text-secondary">
                 Slug
               </label>
               <input
@@ -194,7 +194,7 @@ export default function TeamPage() {
                 value={newTeamSlug}
                 onChange={(e) => setNewTeamSlug(e.target.value)}
                 placeholder="my-team"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-lg border border-lg-border bg-lg-surface px-3 py-2 text-sm text-lg-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 required
               />
             </div>
@@ -210,11 +210,11 @@ export default function TeamPage() {
       </Card>
 
       {loading && (
-        <p className="text-sm text-gray-400 text-center py-8">Loading teams...</p>
+        <p className="text-sm text-lg-text-muted text-center py-8">Loading teams...</p>
       )}
 
       {!loading && teams.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-8">
+        <p className="text-sm text-lg-text-muted text-center py-8">
           No teams yet. Create one above to get started.
         </p>
       )}
@@ -222,7 +222,7 @@ export default function TeamPage() {
       {selectedTeamId && (
         <>
           {/* Members */}
-          <Card>
+          <Card className="!bg-lg-surface !border-lg-border !ring-0">
             <CardHeader>
               <CardTitle className="text-lg">Members</CardTitle>
               <CardDescription>
@@ -231,9 +231,9 @@ export default function TeamPage() {
             </CardHeader>
             <CardContent>
               {membersLoading ? (
-                <p className="text-sm text-gray-400 text-center py-8">Loading members...</p>
+                <p className="text-sm text-lg-text-muted text-center py-8">Loading members...</p>
               ) : members.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-8">No members found</p>
+                <p className="text-sm text-lg-text-muted text-center py-8">No members found</p>
               ) : (
                 <MemberList members={members} />
               )}
@@ -241,7 +241,7 @@ export default function TeamPage() {
           </Card>
 
           {/* Audit Log */}
-          <Card>
+          <Card className="!bg-lg-surface !border-lg-border !ring-0">
             <CardHeader>
               <CardTitle className="text-lg">Audit Log</CardTitle>
               <CardDescription>
@@ -250,7 +250,7 @@ export default function TeamPage() {
             </CardHeader>
             <CardContent>
               {auditLoading ? (
-                <p className="text-sm text-gray-400 text-center py-8">Loading audit log...</p>
+                <p className="text-sm text-lg-text-muted text-center py-8">Loading audit log...</p>
               ) : (
                 <AuditLogTable entries={auditEntries} />
               )}

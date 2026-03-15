@@ -88,14 +88,14 @@ export default function ReviewPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pending Reviews</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-lg-text">Pending Reviews</h1>
+          <p className="text-sm text-lg-text-muted mt-1">
             Pull requests flagged by LastGate that require human review
           </p>
         </div>
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          <span className="ml-2 text-sm text-gray-500">Loading checks...</span>
+          <Loader2 className="h-6 w-6 animate-spin text-lg-text-muted" />
+          <span className="ml-2 text-sm text-lg-text-muted">Loading checks...</span>
         </div>
       </div>
     );
@@ -105,18 +105,18 @@ export default function ReviewPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pending Reviews</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-lg-text">Pending Reviews</h1>
+          <p className="text-sm text-lg-text-muted mt-1">
             Pull requests flagged by LastGate that require human review
           </p>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
             <XCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-lg-text">
               Failed to load checks
             </p>
-            <p className="text-xs text-gray-500 mt-1">{error}</p>
+            <p className="text-xs text-lg-text-muted mt-1">{error}</p>
           </CardContent>
         </Card>
       </div>
@@ -127,18 +127,18 @@ export default function ReviewPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pending Reviews</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-lg-text">Pending Reviews</h1>
+          <p className="text-sm text-lg-text-muted mt-1">
             Pull requests flagged by LastGate that require human review
           </p>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
-            <Inbox className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-900">
+            <Inbox className="h-10 w-10 text-lg-text-muted mx-auto mb-3" />
+            <p className="text-sm font-medium text-lg-text">
               No checks need review
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-lg-text-muted mt-1">
               All check runs are passing. Check back later.
             </p>
           </CardContent>
@@ -150,8 +150,8 @@ export default function ReviewPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Pending Reviews</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-lg-text">Pending Reviews</h1>
+        <p className="text-sm text-lg-text-muted mt-1">
           Pull requests flagged by LastGate that require human review
         </p>
       </div>
@@ -161,33 +161,33 @@ export default function ReviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50/50">
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
+                <tr className="border-b border-lg-border bg-lg-surface-2">
+                  <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-4">
                     Status
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
+                  <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-4">
                     Branch
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
+                  <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-4">
                     Commit
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
+                  <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-4">
                     Author
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
+                  <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-4">
                     Issues
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
+                  <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-4">
                     Time
                   </th>
                   <th className="py-3 px-4" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-lg-border">
                 {checkRuns.map((run) => (
                   <tr
                     key={run.id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-lg-surface-2 transition-colors"
                   >
                     <td className="py-3 px-4">
                       {run.failed_checks > 0 ? (
@@ -209,11 +209,11 @@ export default function ReviewPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div>
-                        <code className="text-xs font-mono text-gray-700 bg-gray-100 px-1 py-0.5 rounded">
+                        <code className="text-xs font-mono text-lg-text-secondary bg-lg-surface-2 px-1 py-0.5 rounded">
                           {run.branch}
                         </code>
                         {run.pr_number && (
-                          <span className="text-xs text-gray-500 ml-2">
+                          <span className="text-xs text-lg-text-muted ml-2">
                             #{run.pr_number}
                           </span>
                         )}
@@ -221,7 +221,7 @@ export default function ReviewPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div>
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm text-lg-text">
                           {run.commit_message
                             ? run.commit_message.length > 60
                               ? run.commit_message.slice(0, 60) + "..."
@@ -229,7 +229,7 @@ export default function ReviewPage() {
                             : run.commit_sha.slice(0, 8)}
                         </span>
                         <div className="mt-0.5">
-                          <code className="text-xs font-mono text-gray-400">
+                          <code className="text-xs font-mono text-lg-text-muted">
                             {run.commit_sha.slice(0, 8)}
                           </code>
                         </div>
@@ -238,9 +238,9 @@ export default function ReviewPage() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5">
                         {run.is_agent_commit && (
-                          <Bot className="h-3.5 w-3.5 text-gray-400" />
+                          <Bot className="h-3.5 w-3.5 text-lg-text-muted" />
                         )}
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-lg-text-secondary">
                           {run.commit_author || "Unknown"}
                         </span>
                       </div>
@@ -248,19 +248,19 @@ export default function ReviewPage() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         {run.failed_checks > 0 && (
-                          <span className="text-xs font-medium text-red-600">
+                          <span className="text-xs font-medium text-lg-fail">
                             {run.failed_checks} failed
                           </span>
                         )}
                         {run.warned_checks > 0 && (
-                          <span className="text-xs font-medium text-amber-600">
+                          <span className="text-xs font-medium text-lg-warn">
                             {run.warned_checks} warnings
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <div className="flex items-center gap-1 text-xs text-lg-text-muted">
                         <Clock className="h-3 w-3" />
                         {timeAgo(run.created_at)}
                       </div>

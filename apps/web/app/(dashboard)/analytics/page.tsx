@@ -24,19 +24,19 @@ export default function AnalyticsPage() {
         <DateRangePicker value={dateRange} onChange={setDateRange} />
       </div>
 
-      <PassRateTrend />
+      <PassRateTrend range={dateRange} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChecksPerDay />
-        <FailureBreakdown />
+        <ChecksPerDay range={dateRange} />
+        <FailureBreakdown range={dateRange} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <FailureHeatmap />
-        <TopFailures />
+        <FailureHeatmap range={dateRange === "7d" ? "90d" : dateRange} />
+        <TopFailures range={dateRange} />
       </div>
 
-      <AgentReliability />
+      <AgentReliability range={dateRange} />
     </div>
   );
 }

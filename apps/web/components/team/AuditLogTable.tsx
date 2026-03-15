@@ -31,7 +31,7 @@ const ACTION_LABELS: Record<string, string> = {
 export default function AuditLogTable({ entries }: AuditLogTableProps) {
   if (entries.length === 0) {
     return (
-      <p className="text-sm text-gray-400 text-center py-8">
+      <p className="text-sm text-lg-text-muted text-center py-8">
         No audit events recorded
       </p>
     );
@@ -42,18 +42,18 @@ export default function AuditLogTable({ entries }: AuditLogTableProps) {
       {entries.map((entry) => (
         <div
           key={entry.id}
-          className="flex items-center justify-between p-3 rounded-lg bg-gray-50"
+          className="flex items-center justify-between p-3 rounded-lg bg-lg-surface-2"
         >
           <div>
-            <p className="text-sm font-medium text-gray-700">
+            <p className="text-sm font-medium text-lg-text-secondary">
               {ACTION_LABELS[entry.action] || entry.action}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-lg-text-muted">
               {entry.users?.github_username || "System"} &middot;{" "}
               {entry.resource_type}
             </p>
           </div>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-lg-text-muted">
             {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
           </span>
         </div>

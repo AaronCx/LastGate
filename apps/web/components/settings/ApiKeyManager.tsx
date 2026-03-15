@@ -105,14 +105,14 @@ export default function ApiKeyManager() {
   return (
     <div className="space-y-4">
       {/* CLI instructions */}
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+      <div className="rounded-lg border border-lg-border bg-lg-surface-2 p-4">
         <div className="flex items-start gap-3">
-          <Terminal className="h-5 w-5 text-gray-500 mt-0.5 shrink-0" />
+          <Terminal className="h-5 w-5 text-lg-text-muted mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-lg-text">
               Authenticate via CLI
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-lg-text-muted mt-1">
               The recommended way to generate API keys is through the CLI device
               flow. Run the following command:
             </p>
@@ -125,7 +125,7 @@ export default function ApiKeyManager() {
 
       {/* Existing keys */}
       {loading ? (
-        <div className="flex items-center justify-center py-4 text-gray-400">
+        <div className="flex items-center justify-center py-4 text-lg-text-muted">
           <Loader2 className="h-4 w-4 animate-spin mr-2" />
           <span className="text-sm">Loading keys...</span>
         </div>
@@ -134,23 +134,23 @@ export default function ApiKeyManager() {
           {keys.map((key) => (
             <div
               key={key.id}
-              className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3"
+              className="flex items-center justify-between rounded-lg border border-lg-border px-4 py-3"
             >
               <div className="flex items-center gap-3">
-                <Key className="h-4 w-4 text-gray-400" />
+                <Key className="h-4 w-4 text-lg-text-muted" />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-lg-text">
                     {key.name}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <code className="text-xs font-mono text-gray-500">
+                    <code className="text-xs font-mono text-lg-text-muted">
                       {key.key_prefix}...
                     </code>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-lg-text-muted">
                       Created {formatDate(key.created_at)}
                     </span>
                     {key.last_used_at && (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-lg-text-muted">
                         Last used {formatRelative(key.last_used_at)}
                       </span>
                     )}
@@ -161,7 +161,7 @@ export default function ApiKeyManager() {
                 size="sm"
                 variant="ghost"
                 onClick={() => revokeKey(key.id)}
-                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                className="text-red-500 hover:text-red-700 hover:bg-red-500/10"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
@@ -169,19 +169,19 @@ export default function ApiKeyManager() {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-400 text-center py-2">
+        <p className="text-sm text-lg-text-muted text-center py-2">
           No API keys yet. Use the CLI or generate one below.
         </p>
       )}
 
       {/* Generated key display */}
       {generatedKey && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
           <p className="text-sm font-medium text-emerald-800 mb-2">
             API key generated — copy it now, it won&apos;t be shown again.
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm font-mono bg-white border border-emerald-200 rounded px-3 py-1.5 text-gray-900">
+            <code className="flex-1 text-sm font-mono bg-lg-surface border border-emerald-500/20 rounded px-3 py-1.5 text-lg-text">
               {generatedKey}
             </code>
             <Button size="sm" variant="outline" onClick={copyKey}>
@@ -197,13 +197,13 @@ export default function ApiKeyManager() {
 
       {/* Error display */}
       {error && (
-        <div className="text-sm text-red-600 text-center">{error}</div>
+        <div className="text-sm text-lg-fail text-center">{error}</div>
       )}
 
       {/* Generate key button */}
       {showGenerate ? (
         <div className="flex items-center gap-2">
-          <p className="text-sm text-gray-600 flex-1">
+          <p className="text-sm text-lg-text-secondary flex-1">
             This will start a device authorization flow to generate a key.
           </p>
           <Button size="sm" onClick={handleGenerate} disabled={generating}>

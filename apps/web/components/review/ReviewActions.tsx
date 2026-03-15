@@ -58,7 +58,7 @@ export default function ReviewActions({ runId }: ReviewActionsProps) {
   };
 
   return (
-    <Card>
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
       <CardHeader>
         <CardTitle className="text-lg">Actions</CardTitle>
       </CardHeader>
@@ -93,14 +93,14 @@ export default function ReviewActions({ runId }: ReviewActionsProps) {
           </Button>
         </div>
         {confirming && !submitting && (
-          <p className="text-xs text-gray-500 mt-2 text-center">
+          <p className="text-xs text-lg-text-muted mt-2 text-center">
             Click again to confirm, or click a different action to cancel.
           </p>
         )}
         {result && (
           <p
             className={`text-xs mt-2 text-center ${
-              result.type === "success" ? "text-emerald-600" : "text-red-600"
+              result.type === "success" ? "text-lg-pass" : "text-lg-fail"
             }`}
           >
             {result.message}

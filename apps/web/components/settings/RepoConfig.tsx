@@ -89,7 +89,7 @@ export default function RepoConfig() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8 text-gray-400">
+      <div className="flex items-center justify-center py-8 text-lg-text-muted">
         <Loader2 className="h-5 w-5 animate-spin mr-2" />
         <span className="text-sm">Loading repositories...</span>
       </div>
@@ -98,13 +98,13 @@ export default function RepoConfig() {
 
   if (error) {
     return (
-      <div className="text-sm text-red-600 py-4 text-center">{error}</div>
+      <div className="text-sm text-lg-fail py-4 text-center">{error}</div>
     );
   }
 
   if (repos.length === 0) {
     return (
-      <div className="text-sm text-gray-500 py-4 text-center">
+      <div className="text-sm text-lg-text-muted py-4 text-center">
         No repositories connected. Install the LastGate GitHub App to get started.
       </div>
     );
@@ -115,15 +115,15 @@ export default function RepoConfig() {
       {repos.map((repo) => (
         <div
           key={repo.id}
-          className="flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-gray-50 transition-colors"
+          className="flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-lg-surface-2 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <GitFork className="h-4 w-4 text-gray-400" />
+            <GitFork className="h-4 w-4 text-lg-text-muted" />
             <div>
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-lg-text">
                 {repo.full_name}
               </span>
-              <span className="text-xs text-gray-400 ml-2">
+              <span className="text-xs text-lg-text-muted ml-2">
                 {repo.default_branch}
               </span>
             </div>
@@ -136,7 +136,7 @@ export default function RepoConfig() {
               disabled={togglingId === repo.id}
               className="peer sr-only"
             />
-            <div className="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-primary/20 peer-disabled:opacity-50" />
+            <div className="h-6 w-11 rounded-full bg-lg-surface-2 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-lg-border after:bg-lg-surface after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-primary/20 peer-disabled:opacity-50" />
           </label>
         </div>
       ))}

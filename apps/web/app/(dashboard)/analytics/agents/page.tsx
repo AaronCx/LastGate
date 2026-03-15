@@ -57,13 +57,13 @@ export default function AgentAnalyticsPage() {
         <div>
           <Link
             href="/analytics"
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-2"
+            className="inline-flex items-center gap-1 text-sm text-lg-text-muted hover:text-lg-text-secondary mb-2"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Analytics
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Agent Analytics</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-lg-text">Agent Analytics</h1>
+          <p className="text-sm text-lg-text-muted mt-1">
             Agent reliability, common mistakes, and activity patterns
           </p>
         </div>
@@ -76,16 +76,16 @@ export default function AgentAnalyticsPage() {
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Agent Commits</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-lg-text-muted">Agent Commits</p>
+                <p className="mt-1 text-2xl font-bold text-lg-text">
                   {loading ? "..." : summary?.agentTotal ?? 0}
                 </p>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-lg-text-muted">
                   {loading ? "" : `${summary?.agentPassRate ?? 0}% pass rate`}
                 </p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50">
-                <Bot className="h-5 w-5 text-violet-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-lg-accent/10">
+                <Bot className="h-5 w-5 text-lg-accent" />
               </div>
             </div>
           </CardContent>
@@ -94,16 +94,16 @@ export default function AgentAnalyticsPage() {
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Human Commits</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-lg-text-muted">Human Commits</p>
+                <p className="mt-1 text-2xl font-bold text-lg-text">
                   {loading ? "..." : summary?.humanTotal ?? 0}
                 </p>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-lg-text-muted">
                   {loading ? "" : `${summary?.humanPassRate ?? 0}% pass rate`}
                 </p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                <User className="h-5 w-5 text-blue-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-lg-accent/10">
+                <User className="h-5 w-5 text-lg-accent" />
               </div>
             </div>
           </CardContent>
@@ -118,7 +118,7 @@ export default function AgentAnalyticsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="h-64 flex items-center justify-center text-sm text-gray-400">Loading...</div>
+              <div className="h-64 flex items-center justify-center text-sm text-lg-text-muted">Loading...</div>
             ) : (
               <AgentReliability data={data?.agentReliability || []} />
             )}
@@ -131,7 +131,7 @@ export default function AgentAnalyticsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="h-32 flex items-center justify-center text-sm text-gray-400">Loading...</div>
+              <div className="h-32 flex items-center justify-center text-sm text-lg-text-muted">Loading...</div>
             ) : (
               <AgentMistakes data={data?.commonMistakes || []} />
             )}
@@ -146,7 +146,7 @@ export default function AgentAnalyticsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="h-20 flex items-center justify-center text-sm text-gray-400">Loading...</div>
+            <div className="h-20 flex items-center justify-center text-sm text-lg-text-muted">Loading...</div>
           ) : (
             <div className="space-y-2">
               <div className="flex gap-1">
@@ -158,13 +158,13 @@ export default function AgentAnalyticsPage() {
                         height: 32,
                         backgroundColor:
                           h.count === 0
-                            ? "#f3f4f6"
+                            ? "#1F2937"
                             : `rgba(139, 92, 246, ${Math.max(0.15, h.count / maxHeat)})`,
                       }}
                       title={`${h.hour}:00 — ${h.count} commit${h.count !== 1 ? "s" : ""}`}
                     />
                     {h.hour % 6 === 0 && (
-                      <span className="text-[10px] text-gray-400">{h.hour}:00</span>
+                      <span className="text-[10px] text-lg-text-muted">{h.hour}:00</span>
                     )}
                   </div>
                 ))}

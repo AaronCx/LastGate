@@ -18,11 +18,11 @@ interface MemberListProps {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  owner: "bg-purple-100 text-purple-700",
-  admin: "bg-blue-100 text-blue-700",
-  maintainer: "bg-emerald-100 text-emerald-700",
-  developer: "bg-gray-100 text-gray-700",
-  viewer: "bg-gray-50 text-gray-500",
+  owner: "bg-purple-500/10 text-purple-400",
+  admin: "bg-lg-accent/10 text-lg-accent",
+  maintainer: "bg-emerald-500/10 text-lg-pass",
+  developer: "bg-lg-surface-2 text-lg-text-secondary",
+  viewer: "bg-lg-surface-2 text-lg-text-muted",
 };
 
 export default function MemberList({ members, onRoleChange, canManage }: MemberListProps) {
@@ -31,7 +31,7 @@ export default function MemberList({ members, onRoleChange, canManage }: MemberL
       {members.map((member) => (
         <div
           key={member.id}
-          className="flex items-center justify-between p-3 rounded-lg bg-gray-50"
+          className="flex items-center justify-between p-3 rounded-lg bg-lg-surface-2"
         >
           <div className="flex items-center gap-3">
             {member.users.avatar_url ? (
@@ -41,9 +41,9 @@ export default function MemberList({ members, onRoleChange, canManage }: MemberL
                 className="w-8 h-8 rounded-full"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200" />
+              <div className="w-8 h-8 rounded-full bg-lg-surface-2" />
             )}
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-lg-text-secondary">
               {member.users.github_username}
             </span>
           </div>

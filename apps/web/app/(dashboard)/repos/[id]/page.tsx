@@ -62,13 +62,13 @@ const statusConfig: Record<
   warning: { icon: AlertTriangle, color: "text-amber-500", badge: "warning" },
   warn: { icon: AlertTriangle, color: "text-amber-500", badge: "warning" },
   warned: { icon: AlertTriangle, color: "text-amber-500", badge: "warning" },
-  pending: { icon: AlertTriangle, color: "text-gray-400", badge: "default" },
+  pending: { icon: AlertTriangle, color: "text-lg-text-muted", badge: "default" },
   running: { icon: AlertTriangle, color: "text-blue-400", badge: "default" },
 };
 
 const defaultStatusConfig = {
   icon: AlertTriangle,
-  color: "text-gray-400",
+  color: "text-lg-text-muted",
   badge: "default" as const,
 };
 
@@ -185,8 +185,8 @@ export default function RepoDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-sm text-gray-500">Loading repository details...</span>
+        <Loader2 className="h-6 w-6 animate-spin text-lg-text-muted" />
+        <span className="ml-2 text-sm text-lg-text-muted">Loading repository details...</span>
       </div>
     );
   }
@@ -201,12 +201,12 @@ export default function RepoDetailPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Repository</h1>
+            <h1 className="text-2xl font-bold text-lg-text">Repository</h1>
           </div>
         </div>
         <div className="text-center py-12">
           <XCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-lg-fail">{error}</p>
         </div>
       </div>
     );
@@ -221,10 +221,10 @@ export default function RepoDetailPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-lg-text">
             {repo?.full_name || "Repository"}
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-lg-text-muted">
             Branch: {repo?.default_branch || "main"}
           </p>
         </div>
@@ -234,11 +234,11 @@ export default function RepoDetailPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Check History</CardTitle>
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-400" />
+            <Filter className="h-4 w-4 text-lg-text-muted" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-sm border border-gray-200 rounded-md px-2 py-1 bg-white"
+              className="text-sm border border-lg-border rounded-md px-2 py-1 bg-lg-surface text-lg-text"
             >
               <option value="all">All Statuses</option>
               <option value="passed">Passed</option>
@@ -251,7 +251,7 @@ export default function RepoDetailPage() {
         <CardContent>
           {checkRuns.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-lg-text-muted">
                 No check runs found for this repository.
               </p>
             </div>
@@ -259,30 +259,30 @@ export default function RepoDetailPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2 w-8" />
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                  <tr className="border-b border-lg-border">
+                    <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-2 w-8" />
+                    <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-2">
                       Commit
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                    <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-2">
                       Branch
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                    <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-2">
                       Status
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                    <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-2">
                       Checks
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                    <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-2">
                       Author
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-2">
+                    <th className="text-left text-xs font-medium text-lg-text-muted uppercase tracking-wider py-3 px-2">
                       Date
                     </th>
                     <th className="py-3 px-2 w-8" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-lg-border">
                   {filtered.map((run) => {
                     const config = getConfig(run.status);
                     const StatusIcon = config.icon;
@@ -292,30 +292,30 @@ export default function RepoDetailPage() {
                     return (
                       <Fragment key={run.id}>
                         <tr
-                          className="hover:bg-gray-50 cursor-pointer transition-colors"
+                          className="hover:bg-lg-surface-2 cursor-pointer transition-colors"
                           onClick={() => toggleRow(run.id)}
                         >
                           <td className="py-3 px-2">
                             {isLoadingDetail ? (
-                              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                              <Loader2 className="h-4 w-4 animate-spin text-lg-text-muted" />
                             ) : isExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-gray-400" />
+                              <ChevronDown className="h-4 w-4 text-lg-text-muted" />
                             ) : (
-                              <ChevronRight className="h-4 w-4 text-gray-400" />
+                              <ChevronRight className="h-4 w-4 text-lg-text-muted" />
                             )}
                           </td>
                           <td className="py-3 px-2">
                             <div>
-                              <code className="text-xs font-mono text-gray-500">
+                              <code className="text-xs font-mono text-lg-text-muted">
                                 {run.commit_sha?.substring(0, 7) || "-"}
                               </code>
-                              <p className="text-sm text-gray-900 truncate max-w-[200px]">
+                              <p className="text-sm text-lg-text truncate max-w-[200px]">
                                 {run.commit_message || "(no message)"}
                               </p>
                             </div>
                           </td>
                           <td className="py-3 px-2">
-                            <code className="text-xs font-mono text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                            <code className="text-xs font-mono text-lg-text-secondary bg-lg-surface-2 px-1.5 py-0.5 rounded">
                               {run.branch}
                             </code>
                           </td>
@@ -325,10 +325,10 @@ export default function RepoDetailPage() {
                               {run.status}
                             </Badge>
                           </td>
-                          <td className="py-3 px-2 text-sm text-gray-600">
+                          <td className="py-3 px-2 text-sm text-lg-text-secondary">
                             {run.passed_checks}/{run.total_checks}
                           </td>
-                          <td className="py-3 px-2 text-sm text-gray-600">
+                          <td className="py-3 px-2 text-sm text-lg-text-secondary">
                             {run.commit_author || "Unknown"}
                             {run.is_agent_commit && (
                               <Badge variant="outline" className="ml-1 text-xs">
@@ -336,7 +336,7 @@ export default function RepoDetailPage() {
                               </Badge>
                             )}
                           </td>
-                          <td className="py-3 px-2 text-sm text-gray-500">
+                          <td className="py-3 px-2 text-sm text-lg-text-muted">
                             {formatDate(run.created_at)}
                           </td>
                           <td className="py-3 px-2">
@@ -349,10 +349,10 @@ export default function RepoDetailPage() {
                         </tr>
                         {isExpanded && run.results && (
                           <tr>
-                            <td colSpan={8} className="bg-gray-50 px-8 py-4">
+                            <td colSpan={8} className="bg-lg-surface-2 px-8 py-4">
                               <div className="space-y-2">
                                 {run.results.length === 0 ? (
-                                  <p className="text-sm text-gray-500 text-center py-2">
+                                  <p className="text-sm text-lg-text-muted text-center py-2">
                                     No individual check results available.
                                   </p>
                                 ) : (
@@ -362,21 +362,21 @@ export default function RepoDetailPage() {
                                     return (
                                       <div
                                         key={result.id}
-                                        className="flex items-center justify-between rounded-lg bg-white border border-gray-200 px-4 py-2.5"
+                                        className="flex items-center justify-between rounded-lg bg-lg-surface border border-lg-border px-4 py-2.5"
                                       >
                                         <div className="flex items-center gap-3">
                                           <RIcon
                                             className={`h-4 w-4 ${rConfig.color}`}
                                           />
-                                          <span className="text-sm font-medium text-gray-900">
+                                          <span className="text-sm font-medium text-lg-text">
                                             {result.title}
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-4">
-                                          <span className="text-sm text-gray-600">
+                                          <span className="text-sm text-lg-text-secondary">
                                             {result.summary || "-"}
                                           </span>
-                                          <span className="text-xs text-gray-400">
+                                          <span className="text-xs text-lg-text-muted">
                                             {formatDuration(result.duration_ms)}
                                           </span>
                                         </div>

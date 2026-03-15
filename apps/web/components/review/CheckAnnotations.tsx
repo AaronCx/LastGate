@@ -22,8 +22,8 @@ export default function CheckAnnotations({ annotations }: CheckAnnotationsProps)
           key={idx}
           className={`rounded-lg border p-3 ${
             ann.severity === "error"
-              ? "border-red-200 bg-red-50/50"
-              : "border-amber-200 bg-amber-50/50"
+              ? "border-red-500/20 bg-red-500/10"
+              : "border-amber-500/20 bg-amber-500/10"
           }`}
         >
           <div className="flex items-start gap-3">
@@ -35,8 +35,8 @@ export default function CheckAnnotations({ annotations }: CheckAnnotationsProps)
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <div className="flex items-center gap-1.5">
-                  <FileCode className="h-3.5 w-3.5 text-gray-400" />
-                  <code className="text-xs font-mono text-gray-700">
+                  <FileCode className="h-3.5 w-3.5 text-lg-text-muted" />
+                  <code className="text-xs font-mono text-lg-text-secondary">
                     {ann.file}
                   </code>
                 </div>
@@ -47,7 +47,7 @@ export default function CheckAnnotations({ annotations }: CheckAnnotationsProps)
                   Line {ann.line}
                 </Badge>
               </div>
-              <p className="text-sm text-gray-700">{ann.message}</p>
+              <p className="text-sm text-lg-text-secondary">{ann.message}</p>
             </div>
           </div>
         </div>

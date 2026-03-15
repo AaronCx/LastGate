@@ -40,15 +40,15 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-lg-text">Settings</h1>
+        <p className="text-sm text-lg-text-muted mt-1">
           Configure repositories, API keys, and notification preferences
         </p>
       </div>
 
       <div className="space-y-6">
         {/* Connected Repos */}
-        <Card>
+        <Card className="!bg-lg-surface !border-lg-border !ring-0">
           <CardHeader>
             <CardTitle className="text-lg">Connected Repositories</CardTitle>
             <CardDescription>
@@ -61,7 +61,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* API Keys */}
-        <Card>
+        <Card className="!bg-lg-surface !border-lg-border !ring-0">
           <CardHeader>
             <CardTitle className="text-lg">API Keys</CardTitle>
             <CardDescription>
@@ -74,7 +74,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Global Rule Defaults */}
-        <Card>
+        <Card className="!bg-lg-surface !border-lg-border !ring-0">
           <CardHeader>
             <CardTitle className="text-lg">Global Rule Defaults</CardTitle>
             <CardDescription>
@@ -96,10 +96,10 @@ export default function SettingsPage() {
                   className="flex items-center justify-between py-2"
                 >
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-lg-text">
                       {rule.name}
                     </p>
-                    <p className="text-xs text-gray-500">{rule.desc}</p>
+                    <p className="text-xs text-lg-text-muted">{rule.desc}</p>
                   </div>
                   <label className="relative inline-flex cursor-pointer items-center">
                     <input
@@ -107,7 +107,7 @@ export default function SettingsPage() {
                       defaultChecked={rule.defaultEnabled}
                       className="peer sr-only"
                     />
-                    <div className="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-primary/20" />
+                    <div className="h-6 w-11 rounded-full bg-lg-surface-2 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-lg-border after:bg-lg-surface after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-primary/20" />
                   </label>
                 </div>
               ))}
@@ -116,7 +116,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Notifications */}
-        <Card>
+        <Card className="!bg-lg-surface !border-lg-border !ring-0">
           <CardHeader>
             <CardTitle className="text-lg">Notifications</CardTitle>
             <CardDescription>
@@ -132,13 +132,13 @@ export default function SettingsPage() {
         {repos.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="text-sm font-medium text-lg-text-secondary">
                 Repository:
               </label>
               <select
                 value={selectedRepoId}
                 onChange={(e) => handleRepoSelect(e.target.value)}
-                className="px-3 py-2 text-sm border rounded-lg bg-white"
+                className="px-3 py-2 text-sm border border-lg-border rounded-lg bg-lg-surface text-lg-text"
               >
                 {repos.map((repo) => (
                   <option key={repo.id} value={repo.id}>

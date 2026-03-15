@@ -24,7 +24,7 @@ export default function BadgeGenerator({ repoFullName }: BadgeGeneratorProps) {
   };
 
   return (
-    <Card>
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
       <CardHeader>
         <CardTitle className="text-lg">README Badge</CardTitle>
       </CardHeader>
@@ -33,7 +33,7 @@ export default function BadgeGenerator({ repoFullName }: BadgeGeneratorProps) {
           <button
             onClick={() => setStyle("simple")}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
-              style === "simple" ? "bg-gray-900 text-white" : "border text-gray-600"
+              style === "simple" ? "bg-gray-900 text-white" : "border border-lg-border text-lg-text-secondary"
             }`}
           >
             Simple
@@ -41,7 +41,7 @@ export default function BadgeGenerator({ repoFullName }: BadgeGeneratorProps) {
           <button
             onClick={() => setStyle("detailed")}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
-              style === "detailed" ? "bg-gray-900 text-white" : "border text-gray-600"
+              style === "detailed" ? "bg-gray-900 text-white" : "border border-lg-border text-lg-text-secondary"
             }`}
           >
             Detailed
@@ -49,7 +49,7 @@ export default function BadgeGenerator({ repoFullName }: BadgeGeneratorProps) {
         </div>
 
         {/* Preview */}
-        <div className="p-4 bg-gray-50 rounded-lg flex items-center justify-center">
+        <div className="p-4 bg-lg-surface-2 rounded-lg flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={badgeUrl} alt="LastGate badge preview" />
         </div>

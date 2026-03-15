@@ -56,13 +56,13 @@ export default function RepoAnalyticsPage() {
         <div>
           <Link
             href="/analytics"
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-2"
+            className="inline-flex items-center gap-1 text-sm text-lg-text-muted hover:text-lg-text-secondary mb-2"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Analytics
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Repository Analytics</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-lg-text">Repository Analytics</h1>
+          <p className="text-sm text-lg-text-muted mt-1">
             Performance and failure analysis
           </p>
         </div>
@@ -73,24 +73,24 @@ export default function RepoAnalyticsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-5 text-center">
-            <p className="text-sm font-medium text-gray-500">Total Checks</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
+            <p className="text-sm font-medium text-lg-text-muted">Total Checks</p>
+            <p className="mt-1 text-2xl font-bold text-lg-text">
               {loading ? "..." : summary?.totalRuns ?? 0}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5 text-center">
-            <p className="text-sm font-medium text-gray-500">Pass Rate</p>
-            <p className="mt-1 text-2xl font-bold text-emerald-600">
+            <p className="text-sm font-medium text-lg-text-muted">Pass Rate</p>
+            <p className="mt-1 text-2xl font-bold text-lg-pass">
               {loading ? "..." : `${summary?.passRate ?? 0}%`}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5 text-center">
-            <p className="text-sm font-medium text-gray-500">Passed</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
+            <p className="text-sm font-medium text-lg-text-muted">Passed</p>
+            <p className="mt-1 text-2xl font-bold text-lg-text">
               {loading ? "..." : summary?.passedRuns ?? 0}
             </p>
           </CardContent>
@@ -103,12 +103,12 @@ export default function RepoAnalyticsPage() {
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50">
-                  <Bot className="h-4 w-4 text-violet-500" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-lg-accent/10">
+                  <Bot className="h-4 w-4 text-lg-accent" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">Agent Commits</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm font-medium text-lg-text-secondary">Agent Commits</p>
+                  <p className="text-xs text-lg-text-muted">
                     {avh.agent.total} total, {avh.agent.passRate}% pass rate
                   </p>
                 </div>
@@ -118,12 +118,12 @@ export default function RepoAnalyticsPage() {
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
-                  <User className="h-4 w-4 text-blue-500" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-lg-accent/10">
+                  <User className="h-4 w-4 text-lg-accent" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-700">Human Commits</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm font-medium text-lg-text-secondary">Human Commits</p>
+                  <p className="text-xs text-lg-text-muted">
                     {avh.human.total} total, {avh.human.passRate}% pass rate
                   </p>
                 </div>
@@ -141,9 +141,9 @@ export default function RepoAnalyticsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="h-64 flex items-center justify-center text-sm text-gray-400">Loading...</div>
+              <div className="h-64 flex items-center justify-center text-sm text-lg-text-muted">Loading...</div>
             ) : (
-              <PassRateTrend data={data?.dailyPassRate || []} />
+              <PassRateTrend range={range} />
             )}
           </CardContent>
         </Card>
@@ -154,7 +154,7 @@ export default function RepoAnalyticsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="h-64 flex items-center justify-center text-sm text-gray-400">Loading...</div>
+              <div className="h-64 flex items-center justify-center text-sm text-lg-text-muted">Loading...</div>
             ) : (
               <FailureBreakdown data={data?.failureBreakdown || []} />
             )}

@@ -24,7 +24,7 @@ const CHECK_TYPE_LABELS: Record<string, string> = {
 export default function AgentMistakes({ data }: AgentMistakesProps) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-sm text-gray-400">
+      <div className="flex items-center justify-center h-32 text-sm text-lg-text-muted">
         No agent mistakes recorded
       </div>
     );
@@ -35,19 +35,19 @@ export default function AgentMistakes({ data }: AgentMistakesProps) {
       {data.slice(0, 6).map((entry) => (
         <div
           key={entry.checkType}
-          className="flex items-center justify-between p-3 rounded-lg bg-gray-50"
+          className="flex items-center justify-between p-3 rounded-lg bg-lg-surface-2"
         >
           <div>
-            <p className="text-sm font-medium text-gray-700">
+            <p className="text-sm font-medium text-lg-text-secondary">
               {CHECK_TYPE_LABELS[entry.checkType] || entry.checkType}
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-lg-text-muted">
               {entry.count} occurrence{entry.count !== 1 ? "s" : ""}
             </p>
           </div>
           <div className="text-right">
             <p className="text-sm font-semibold text-red-500">{entry.percentage}%</p>
-            <p className="text-xs text-gray-400">of agent runs</p>
+            <p className="text-xs text-lg-text-muted">of agent runs</p>
           </div>
         </div>
       ))}

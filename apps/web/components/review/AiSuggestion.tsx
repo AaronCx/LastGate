@@ -13,9 +13,9 @@ interface AiSuggestionProps {
 }
 
 const confidenceColors = {
-  high: "text-emerald-600 bg-emerald-50",
-  medium: "text-amber-600 bg-amber-50",
-  low: "text-gray-600 bg-gray-100",
+  high: "text-lg-pass bg-emerald-500/10",
+  medium: "text-lg-warn bg-amber-500/10",
+  low: "text-lg-text-secondary bg-lg-surface-2",
 };
 
 export default function AiSuggestion({
@@ -27,12 +27,12 @@ export default function AiSuggestion({
   confidence,
 }: AiSuggestionProps) {
   return (
-    <Card className="border-blue-200 bg-blue-50/30">
+    <Card className="!bg-lg-surface !border-lg-accent/20 !ring-0">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-blue-500" />
-            <span className="text-sm font-medium text-blue-700">
+            <Sparkles className="h-4 w-4 text-lg-accent" />
+            <span className="text-sm font-medium text-lg-accent">
               AI Fix Suggestion
             </span>
           </div>
@@ -43,12 +43,12 @@ export default function AiSuggestion({
           </span>
         </div>
 
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-lg-text-muted">
           {checkType.toUpperCase()} &middot; {file}
           {line ? `:${line}` : ""}
         </div>
 
-        <p className="text-sm text-gray-700">{explanation}</p>
+        <p className="text-sm text-lg-text-secondary">{explanation}</p>
 
         {fix && (
           <pre className="p-3 bg-gray-900 text-gray-200 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">

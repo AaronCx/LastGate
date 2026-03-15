@@ -40,7 +40,7 @@ const statusIcon: Record<string, React.ReactNode> = {
   passed: <CheckCircle className="h-3 w-3 text-emerald-500" />,
   failed: <XCircle className="h-3 w-3 text-red-500" />,
   warned: <AlertTriangle className="h-3 w-3 text-amber-500" />,
-  pending: <Clock className="h-3 w-3 text-gray-400" />,
+  pending: <Clock className="h-3 w-3 text-lg-text-muted" />,
   running: <Loader2 className="h-3 w-3 text-blue-400 animate-spin" />,
 };
 
@@ -100,14 +100,14 @@ export default function ActivityPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Agent Activity</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-lg-text">Agent Activity</h1>
+          <p className="text-sm text-lg-text-muted mt-1">
             Monitor AI agent sessions and commit patterns
           </p>
         </div>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          <span className="ml-2 text-sm text-gray-500">Loading activity...</span>
+          <Loader2 className="h-6 w-6 animate-spin text-lg-text-muted" />
+          <span className="ml-2 text-sm text-lg-text-muted">Loading activity...</span>
         </div>
       </div>
     );
@@ -117,14 +117,14 @@ export default function ActivityPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Agent Activity</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-lg-text">Agent Activity</h1>
+          <p className="text-sm text-lg-text-muted mt-1">
             Monitor AI agent sessions and commit patterns
           </p>
         </div>
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 text-red-600">
+            <div className="flex items-center gap-2 text-lg-fail">
               <XCircle className="h-5 w-5" />
               <span className="text-sm">{error}</span>
             </div>
@@ -137,8 +137,8 @@ export default function ActivityPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Agent Activity</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-lg-text">Agent Activity</h1>
+        <p className="text-sm text-lg-text-muted mt-1">
           Monitor AI agent sessions and commit patterns
         </p>
       </div>
@@ -151,15 +151,15 @@ export default function ActivityPage() {
         <CardContent>
           {checkRuns.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Clock className="h-10 w-10 text-gray-300 mb-3" />
-              <p className="text-sm font-medium text-gray-600">No activity yet</p>
-              <p className="text-xs text-gray-400 mt-1">
+              <Clock className="h-10 w-10 text-lg-text-muted mb-3" />
+              <p className="text-sm font-medium text-lg-text-secondary">No activity yet</p>
+              <p className="text-xs text-lg-text-muted mt-1">
                 Check runs will appear here once commits are pushed to monitored repositories.
               </p>
             </div>
           ) : (
             <div className="relative">
-              <div className="absolute left-5 top-0 bottom-0 w-px bg-gray-200" />
+              <div className="absolute left-5 top-0 bottom-0 w-px bg-lg-border" />
               <div className="space-y-6">
                 {checkRuns.map((run) => {
                   const repoName = repoMap[run.repo_id] || run.repo_id;
@@ -167,17 +167,17 @@ export default function ActivityPage() {
 
                   return (
                     <div key={run.id} className="relative flex gap-4 pl-1">
-                      <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white border-2 border-gray-200 shrink-0">
+                      <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-lg-surface border-2 border-lg-border shrink-0">
                         {run.is_agent_commit ? (
                           <Bot className="h-4 w-4 text-blue-500" />
                         ) : (
-                          <User className="h-4 w-4 text-gray-500" />
+                          <User className="h-4 w-4 text-lg-text-muted" />
                         )}
                       </div>
-                      <div className="flex-1 rounded-lg border border-gray-200 bg-white p-4">
+                      <div className="flex-1 rounded-lg border border-lg-border bg-lg-surface p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-900">
+                            <span className="text-sm font-semibold text-lg-text">
                               {run.commit_author || "Unknown"}
                             </span>
                             <Badge variant="outline" className="text-xs">
@@ -190,12 +190,12 @@ export default function ActivityPage() {
                               {run.is_agent_commit ? "Agent" : "Human"}
                             </Badge>
                             {run.agent_session_id && (
-                              <span className="text-xs text-gray-400 font-mono">
+                              <span className="text-xs text-lg-text-muted font-mono">
                                 {run.agent_session_id}
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                          <div className="flex items-center gap-1 text-xs text-lg-text-muted">
                             <Clock className="h-3 w-3" />
                             {formatTimestamp(run.created_at)}
                           </div>
@@ -203,14 +203,14 @@ export default function ActivityPage() {
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-2 text-sm">
                             {icon}
-                            <code className="text-xs font-mono text-gray-400">
+                            <code className="text-xs font-mono text-lg-text-muted">
                               {run.commit_sha.slice(0, 7)}
                             </code>
-                            <span className="text-gray-700">
+                            <span className="text-lg-text-secondary">
                               {run.commit_message || "No commit message"}
                             </span>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-gray-400 mt-2">
+                          <div className="flex items-center gap-3 text-xs text-lg-text-muted mt-2">
                             <span className="flex items-center gap-1">
                               <CheckCircle className="h-3 w-3 text-emerald-500" />
                               {run.passed_checks} passed
@@ -227,7 +227,7 @@ export default function ActivityPage() {
                                 {run.warned_checks} warned
                               </span>
                             )}
-                            <span className="text-gray-300">|</span>
+                            <span className="text-lg-border">|</span>
                             <span>{run.branch}</span>
                           </div>
                         </div>
