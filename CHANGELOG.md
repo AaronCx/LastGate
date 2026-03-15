@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-15
+
+### Added
+- **Dashboard redesign** — Full dark theme with Tremor components replacing custom Recharts
+- **Design system** — Deep midnight palette, violet accent, JetBrains Mono + Plus Jakarta Sans fonts
+- **KPI cards** — Tremor SparkAreaChart sparklines with BadgeDelta change indicators
+- **Check Volume chart** — Stacked AreaChart showing pass/fail/warn trends over time
+- **Failure Breakdown** — Interactive DonutChart with BarList detail view
+- **Repo Health tracker** — Tremor Tracker with colored segments per check run and hover tooltips
+- **Live Activity feed** — Staggered fade-in animations, live pulse indicator, clickable rows
+- **PassRateTrend** — Interactive area chart with metric toggle (Pass Rate %, Check Count, Failures)
+- **Failure Heatmap** — GitHub contribution-style 90-day calendar grid with red intensity scale
+- **Agent Reliability** — ProgressCircle scorecards with SparkBarChart per agent
+- **Check detail status pills** — Horizontal check-type pills replacing sidebar list
+- **Skeleton loading states** — Pulse animations matching layout shape (no spinners)
+- **Micro-animations** — `pulse-live`, `count-up`, `fade-in-up` keyframes
+
+### Changed
+- **Next.js 14 → 15** — Upgraded to 15.5.12 to resolve two Dependabot security alerts (HTTP deserialization DoS, Image Optimizer DoS)
+- **React 18 → 19** — Required by Next.js 15
+- **Dashboard layout** — Dark sidebar with violet accent active states, backdrop-blur top bar
+- **All analytics components** — Replaced recharts with Tremor (AreaChart, BarChart, DonutChart, BarList, ProgressCircle, SparkBarChart, Tracker)
+- **Color scheme** — Light gray → deep midnight dark theme across all dashboard pages
+
 ## [0.2.0] - 2026-03-15
 
 ### Added

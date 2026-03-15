@@ -1,6 +1,6 @@
 {
   "name": "@lastgate/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SDK for writing custom LastGate checks",
   "type": "module",
   "main": "src/index.ts",
