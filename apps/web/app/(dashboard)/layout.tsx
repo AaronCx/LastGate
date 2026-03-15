@@ -54,7 +54,6 @@ export default function DashboardLayout({
       })
       .then((data) => setUser(data.user))
       .catch(() => {
-        // Session invalid or missing — redirect to login
         router.push("/login");
       });
   }, [router]);
@@ -65,11 +64,11 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-lg-bg">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -77,18 +76,20 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-lg-surface border-r border-lg-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-16 items-center justify-between px-6 border-b border-gray-800">
-          <Link href="/" className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-blue-400" />
-            <span className="text-lg font-bold text-white">LastGate</span>
+        <div className="flex h-16 items-center justify-between px-6 border-b border-lg-border">
+          <Link href="/overview" className="flex items-center gap-2.5">
+            <Shield className="h-6 w-6 text-lg-accent" />
+            <span className="text-lg font-bold font-mono text-lg-text tracking-tight">
+              LastGate
+            </span>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-gray-400 hover:text-white"
+            className="lg:hidden text-lg-text-muted hover:text-lg-text"
           >
             <X className="h-5 w-5" />
           </button>
@@ -105,20 +106,20 @@ export default function DashboardLayout({
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
                   isActive
-                    ? "bg-gray-800 text-white"
-                    : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
+                    ? "bg-lg-accent/10 text-lg-accent border border-lg-accent/20"
+                    : "text-lg-text-secondary hover:bg-lg-surface-2 hover:text-lg-text border border-transparent"
                 )}
               >
-                <item.icon className="h-4.5 w-4.5 shrink-0" />
+                <item.icon className="h-[18px] w-[18px] shrink-0" />
                 {item.name}
               </Link>
             );
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-800 p-4">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-lg-border p-4">
           <div className="flex items-center gap-3">
             {user?.avatar_url ? (
               <Image
@@ -126,24 +127,24 @@ export default function DashboardLayout({
                 alt={user.github_username}
                 width={32}
                 height={32}
-                className="rounded-full"
+                className="rounded-full ring-2 ring-lg-border"
               />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700">
-                <User className="h-4 w-4 text-gray-300" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-lg-surface-2">
+                <User className="h-4 w-4 text-lg-text-muted" />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-200 truncate">
+              <p className="text-sm font-medium text-lg-text truncate">
                 {user?.github_username || "Loading..."}
               </p>
-              <p className="text-xs text-gray-500 truncate">
+              <p className="text-xs text-lg-text-muted truncate">
                 {user?.email || ""}
               </p>
             </div>
             <button
               onClick={handleLogout}
-              className="text-gray-500 hover:text-gray-300 transition-colors"
+              className="text-lg-text-muted hover:text-lg-fail transition-colors"
               title="Log out"
             >
               <LogOut className="h-4 w-4" />
@@ -155,10 +156,10 @@ export default function DashboardLayout({
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-200 bg-white px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-lg-border bg-lg-bg/80 backdrop-blur-md px-4 sm:px-6">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-gray-500 hover:text-gray-700"
+            className="lg:hidden text-lg-text-muted hover:text-lg-text"
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -170,13 +171,13 @@ export default function DashboardLayout({
               <Image
                 src={user.avatar_url}
                 alt={user.github_username}
-                width={32}
-                height={32}
-                className="rounded-full"
+                width={28}
+                height={28}
+                className="rounded-full ring-1 ring-lg-border"
               />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
-                <User className="h-4 w-4 text-gray-600" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-lg-surface-2">
+                <User className="h-3.5 w-3.5 text-lg-text-muted" />
               </div>
             )}
           </div>

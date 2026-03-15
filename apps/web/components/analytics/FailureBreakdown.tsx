@@ -1,13 +1,14 @@
 "use client";
 
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { Card, DonutChart, BarList } from "@tremor/react";
+
+const defaultData = [
+  { type: "Secrets", count: 34 },
+  { type: "Lint", count: 28 },
+  { type: "Build", count: 18 },
+  { type: "Files", count: 12 },
+  { type: "Other", count: 8 },
+];
 
 interface BreakdownEntry {
   checkType: string;
@@ -15,10 +16,8 @@ interface BreakdownEntry {
 }
 
 interface FailureBreakdownProps {
-  data: BreakdownEntry[];
+  data?: BreakdownEntry[];
 }
-
-const COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280"];
 
 const CHECK_TYPE_LABELS: Record<string, string> = {
   secrets: "Secrets",
@@ -31,39 +30,50 @@ const CHECK_TYPE_LABELS: Record<string, string> = {
   dependencies: "Deps",
 };
 
-export default function FailureBreakdown({ data }: FailureBreakdownProps) {
-  if (data.length === 0) {
+export default function FailureBreakdown({ data: propData }: FailureBreakdownProps = {}) {
+  const chartData = propData
+    ? propData.map((d) => ({
+        type: CHECK_TYPE_LABELS[d.checkType] || d.checkType,
+        count: d.count,
+      }))
+    : defaultData;
+
+  if (chartData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-sm text-gray-400">
-        No failures to break down
-      </div>
+      <Card className="!bg-lg-surface !border-lg-border !ring-0">
+        <h3 className="font-sans font-semibold text-lg-text mb-4">
+          Failure Breakdown
+        </h3>
+        <div className="flex items-center justify-center h-48 text-sm text-lg-text-muted">
+          No failures to break down
+        </div>
+      </Card>
     );
   }
 
-  const chartData = data.map((d) => ({
-    name: CHECK_TYPE_LABELS[d.checkType] || d.checkType,
-    value: d.count,
-  }));
-
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <PieChart>
-        <Pie
-          data={chartData}
-          cx="50%"
-          cy="50%"
-          innerRadius={60}
-          outerRadius={100}
-          paddingAngle={2}
-          dataKey="value"
-        >
-          {chartData.map((_, index) => (
-            <Cell key={index} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-        <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-      </PieChart>
-    </ResponsiveContainer>
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
+      <h3 className="font-sans font-semibold text-lg-text mb-4">
+        Failure Breakdown
+      </h3>
+      <DonutChart
+        data={chartData}
+        category="count"
+        index="type"
+        colors={["red", "amber", "orange", "rose", "gray"]}
+        valueFormatter={(v) => `${v} failures`}
+        showAnimation={true}
+        showTooltip={true}
+        className="h-48"
+        variant="donut"
+      />
+      <BarList
+        data={chartData.map((d) => ({ name: d.type, value: d.count }))}
+        className="mt-4"
+        color="red"
+        valueFormatter={(v: number) => `${v}`}
+        showAnimation={true}
+      />
+    </Card>
   );
 }

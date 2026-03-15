@@ -1,55 +1,75 @@
 "use client";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { Card, ProgressCircle, SparkBarChart } from "@tremor/react";
 
-interface AgentEntry {
-  author: string;
-  total: number;
-  passed: number;
-  failed: number;
-  passRate: number;
-}
+const agents = [
+  {
+    id: "1", name: "Claude Code", passRate: 94, totalCommits: 156, failedCommits: 9,
+    topFailure: "Secrets",
+    recentChecks: Array.from({ length: 20 }, (_, i) => ({ status: i === 3 || i === 12 ? "failed" : "passed", value: 1 })),
+  },
+  {
+    id: "2", name: "Cursor", passRate: 87, totalCommits: 89, failedCommits: 12,
+    topFailure: "Lint errors",
+    recentChecks: Array.from({ length: 20 }, (_, i) => ({ status: i % 6 === 0 ? "failed" : "passed", value: 1 })),
+  },
+  {
+    id: "3", name: "Copilot", passRate: 91, totalCommits: 203, failedCommits: 18,
+    topFailure: "Build failures",
+    recentChecks: Array.from({ length: 20 }, (_, i) => ({ status: i === 5 || i === 14 ? "failed" : "passed", value: 1 })),
+  },
+  {
+    id: "4", name: "Devin", passRate: 78, totalCommits: 45, failedCommits: 10,
+    topFailure: "Agent thrashing",
+    recentChecks: Array.from({ length: 20 }, (_, i) => ({ status: i % 4 === 0 ? "failed" : "passed", value: 1 })),
+  },
+];
 
-interface AgentReliabilityProps {
-  data: AgentEntry[];
-}
-
-export default function AgentReliability({ data }: AgentReliabilityProps) {
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-sm text-gray-400">
-        No agent commits in this period
-      </div>
-    );
-  }
-
-  const chartData = data.slice(0, 10).map((d) => ({
-    name: d.author.length > 15 ? d.author.slice(0, 15) + "..." : d.author,
-    passed: d.passed,
-    failed: d.failed,
-    passRate: d.passRate,
-  }));
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function AgentReliability(_props?: { data?: any[] }) {
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#9ca3af" }} />
-        <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} />
-        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-        <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="passed" fill="#10b981" name="Passed" radius={[0, 0, 0, 0]} />
-        <Bar dataKey="failed" fill="#ef4444" name="Failed" radius={[4, 4, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
+      <h3 className="font-sans font-semibold text-lg-text mb-4">
+        Agent Reliability
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {agents.map((agent) => (
+          <div
+            key={agent.id}
+            className="flex items-center gap-4 p-4 rounded-lg bg-lg-surface-2"
+          >
+            <ProgressCircle
+              value={agent.passRate}
+              size="md"
+              color={agent.passRate > 90 ? "emerald" : agent.passRate > 70 ? "amber" : "red"}
+            >
+              <span className="font-mono text-sm font-bold text-lg-text">
+                {agent.passRate}%
+              </span>
+            </ProgressCircle>
+
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-sm font-semibold text-lg-text">
+                {agent.name}
+              </p>
+              <p className="text-xs text-lg-text-secondary">
+                {agent.totalCommits} commits · {agent.failedCommits} failures
+              </p>
+              <p className="text-xs text-lg-text-muted mt-1">
+                Most common: {agent.topFailure}
+              </p>
+            </div>
+
+            <SparkBarChart
+              data={agent.recentChecks}
+              categories={["value"]}
+              index="status"
+              colors={["emerald"]}
+              className="h-8 w-20"
+            />
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

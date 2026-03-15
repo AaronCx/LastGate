@@ -1,80 +1,106 @@
 "use client";
 
-import { GitFork, ShieldCheck, ShieldAlert } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, Tracker } from "@tremor/react";
+import Link from "next/link";
 
-const repos = [
-  { name: "acme/frontend", health: "green" as const, checks: 342, lastCheck: "2m ago", branchProtectionEnabled: true },
-  { name: "acme/api-server", health: "red" as const, checks: 189, lastCheck: "12m ago", branchProtectionEnabled: true },
-  { name: "acme/shared-lib", health: "yellow" as const, checks: 97, lastCheck: "28m ago", branchProtectionEnabled: false },
-  { name: "acme/mobile-app", health: "green" as const, checks: 156, lastCheck: "1h ago", branchProtectionEnabled: true },
-  { name: "acme/docs", health: "green" as const, checks: 43, lastCheck: "2h ago", branchProtectionEnabled: false },
-  { name: "acme/infra", health: "green" as const, checks: 78, lastCheck: "3h ago", branchProtectionEnabled: true },
-  { name: "acme/analytics", health: "yellow" as const, checks: 64, lastCheck: "4h ago", branchProtectionEnabled: false },
-  { name: "acme/auth-service", health: "green" as const, checks: 112, lastCheck: "5h ago", branchProtectionEnabled: true },
+interface RepoHealth {
+  id: string;
+  name: string;
+  health: "healthy" | "degraded" | "failing";
+  passRate: number;
+  checkHistory: Array<{ status: string; commitSha: string; commitMessage: string }>;
+}
+
+const repos: RepoHealth[] = [
+  {
+    id: "1", name: "AgentForge", health: "healthy", passRate: 94,
+    checkHistory: Array.from({ length: 30 }, (_, i) => ({
+      status: i === 8 || i === 15 ? "failed" : i === 22 ? "warned" : "passed",
+      commitSha: `abc${String(i).padStart(4, "0")}`,
+      commitMessage: `commit ${i}`,
+    })),
+  },
+  {
+    id: "2", name: "LastGate", health: "healthy", passRate: 100,
+    checkHistory: Array.from({ length: 30 }, () => ({ status: "passed", commitSha: "def0001", commitMessage: "all good" })),
+  },
+  {
+    id: "3", name: "NexaBase", health: "degraded", passRate: 87,
+    checkHistory: Array.from({ length: 30 }, (_, i) => ({
+      status: i % 7 === 0 ? "failed" : i % 5 === 0 ? "warned" : "passed",
+      commitSha: `ghi${String(i).padStart(4, "0")}`,
+      commitMessage: `commit ${i}`,
+    })),
+  },
+  {
+    id: "4", name: "TaskFlow", health: "healthy", passRate: 100,
+    checkHistory: Array.from({ length: 30 }, () => ({ status: "passed", commitSha: "jkl0001", commitMessage: "clean" })),
+  },
+  {
+    id: "5", name: "LogLens", health: "degraded", passRate: 90,
+    checkHistory: Array.from({ length: 30 }, (_, i) => ({
+      status: i === 3 || i === 12 || i === 25 ? "failed" : "passed",
+      commitSha: `mno${String(i).padStart(4, "0")}`,
+      commitMessage: `commit ${i}`,
+    })),
+  },
+  {
+    id: "6", name: "CommitCraft", health: "healthy", passRate: 100,
+    checkHistory: Array.from({ length: 30 }, () => ({ status: "passed", commitSha: "pqr0001", commitMessage: "solid" })),
+  },
 ];
 
-const healthColors = {
-  green: "bg-emerald-500",
-  yellow: "bg-amber-500",
-  red: "bg-red-500",
-};
-
-const healthLabels = {
-  green: "Healthy",
-  yellow: "Warnings",
-  red: "Failing",
-};
-
 export default function RepoHealthGrid() {
-  const enableBranchProtection = (repoName: string) => {
-    // TODO: Call API to enable branch protection
-    console.log(`Enabling branch protection for ${repoName}`);
-  };
-
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      {repos.map((repo) => (
-        <Card
-          key={repo.name}
-          className="hover:shadow-md transition-shadow cursor-pointer"
-        >
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
-              <GitFork className="h-4 w-4 text-gray-400" />
-              <div className="flex items-center gap-1.5">
-                <div
-                  className={`h-2 w-2 rounded-full ${healthColors[repo.health]}`}
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
+      <h3 className="font-sans font-semibold text-lg-text mb-6">
+        Repo Health
+      </h3>
+      <div className="space-y-6">
+        {repos.map((repo) => (
+          <div key={repo.id}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    repo.health === "healthy"
+                      ? "bg-emerald-500"
+                      : repo.health === "degraded"
+                        ? "bg-amber-500"
+                        : "bg-red-500"
+                  }`}
                 />
-                <span className="text-xs text-gray-500">
-                  {healthLabels[repo.health]}
-                </span>
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {repo.name}
-            </p>
-            <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-              <span>{repo.checks} checks</span>
-              <span>{repo.lastCheck}</span>
-            </div>
-            <div className="mt-2">
-              {repo.branchProtectionEnabled ? (
-                <span className="text-xs text-green-400 flex items-center gap-1">
-                  <ShieldCheck size={14} /> Protected
-                </span>
-              ) : (
-                <button
-                  onClick={() => enableBranchProtection(repo.name)}
-                  className="text-xs text-yellow-400 flex items-center gap-1 hover:underline"
+                <Link
+                  href={`/repos/${repo.id}`}
+                  className="font-mono text-sm font-medium text-lg-text hover:text-lg-accent transition-colors"
                 >
-                  <ShieldAlert size={14} /> Not protected — click to enable
-                </button>
-              )}
+                  {repo.name}
+                </Link>
+              </div>
+              <span className="font-mono text-sm text-lg-text-secondary">
+                {repo.passRate}% pass
+              </span>
             </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+            <Tracker
+              data={repo.checkHistory.map((check) => ({
+                color:
+                  check.status === "passed"
+                    ? "emerald"
+                    : check.status === "failed"
+                      ? "red"
+                      : check.status === "warned"
+                        ? "amber"
+                        : "gray",
+                tooltip: `${check.commitSha.slice(0, 7)} — ${check.commitMessage}`,
+              }))}
+              className="h-3"
+            />
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-lg-text-muted mt-4">
+        Each segment = one check run. Hover for details. Click to view.
+      </p>
+    </Card>
   );
 }

@@ -1,138 +1,67 @@
 "use client";
 
-import { CheckCircle, XCircle, AlertTriangle, Clock } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Card } from "@tremor/react";
+import Link from "next/link";
 
 const activities = [
-  {
-    id: "1",
-    repo: "acme/frontend",
-    commit: "fix: resolve SSR hydration mismatch",
-    sha: "a3f8b2c",
-    status: "passed" as const,
-    agent: "Claude",
-    timestamp: new Date(Date.now() - 1000 * 60 * 3),
-  },
-  {
-    id: "2",
-    repo: "acme/api-server",
-    commit: "feat: add rate limiting middleware",
-    sha: "d9e1f4a",
-    status: "failed" as const,
-    agent: "Cursor",
-    timestamp: new Date(Date.now() - 1000 * 60 * 12),
-  },
-  {
-    id: "3",
-    repo: "acme/shared-lib",
-    commit: "refactor: extract validation utils",
-    sha: "b7c2e8d",
-    status: "warning" as const,
-    agent: "Copilot",
-    timestamp: new Date(Date.now() - 1000 * 60 * 28),
-  },
-  {
-    id: "4",
-    repo: "acme/frontend",
-    commit: "feat: implement dark mode toggle",
-    sha: "e5f9a1b",
-    status: "passed" as const,
-    agent: "Claude",
-    timestamp: new Date(Date.now() - 1000 * 60 * 45),
-  },
-  {
-    id: "5",
-    repo: "acme/mobile-app",
-    commit: "fix: patch deep linking on Android",
-    sha: "c4d6e2f",
-    status: "passed" as const,
-    agent: "Devin",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60),
-  },
-  {
-    id: "6",
-    repo: "acme/api-server",
-    commit: "chore: update dependencies",
-    sha: "f1a3b5c",
-    status: "warning" as const,
-    agent: "Copilot",
-    timestamp: new Date(Date.now() - 1000 * 60 * 90),
-  },
-  {
-    id: "7",
-    repo: "acme/docs",
-    commit: "docs: add API reference for v2",
-    sha: "g8h2j4k",
-    status: "passed" as const,
-    agent: null,
-    timestamp: new Date(Date.now() - 1000 * 60 * 120),
-  },
+  { id: "1", timeAgo: "2m ago", repoName: "AgentForge", commitSha: "abc1234", commitMessage: "feat: add auth flow", status: "passed", checkRunId: "cr-1" },
+  { id: "2", timeAgo: "14m ago", repoName: "NexaBase", commitSha: "def5678", commitMessage: "fix: db connection", status: "failed", checkRunId: "cr-2" },
+  { id: "3", timeAgo: "23m ago", repoName: "AgentForge", commitSha: "ghi9012", commitMessage: "chore: update deps", status: "passed", checkRunId: "cr-3" },
+  { id: "4", timeAgo: "1h ago", repoName: "LogLens", commitSha: "jkl3456", commitMessage: "feat: add filters", status: "warned", checkRunId: "cr-4" },
+  { id: "5", timeAgo: "2h ago", repoName: "TaskFlow", commitSha: "mno7890", commitMessage: "docs: update README", status: "passed", checkRunId: "cr-5" },
+  { id: "6", timeAgo: "3h ago", repoName: "CommitCraft", commitSha: "pqr1234", commitMessage: "fix: resolve race condition", status: "passed", checkRunId: "cr-6" },
+  { id: "7", timeAgo: "5h ago", repoName: "NexaBase", commitSha: "stu5678", commitMessage: "feat: add caching layer", status: "failed", checkRunId: "cr-7" },
 ];
 
-const statusConfig = {
-  passed: {
-    icon: CheckCircle,
-    color: "text-emerald-500",
-    bg: "bg-emerald-50",
-    label: "Passed",
-  },
-  failed: {
-    icon: XCircle,
-    color: "text-red-500",
-    bg: "bg-red-50",
-    label: "Failed",
-  },
-  warning: {
-    icon: AlertTriangle,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
-    label: "Warning",
-  },
-};
+function StatusBadge({ status }: { status: string }) {
+  const config = {
+    passed: { label: "PASS", bg: "bg-emerald-500/10", text: "text-emerald-400" },
+    failed: { label: "FAIL", bg: "bg-red-500/10", text: "text-red-400" },
+    warned: { label: "WARN", bg: "bg-amber-500/10", text: "text-amber-400" },
+  }[status] || { label: status.toUpperCase(), bg: "bg-gray-500/10", text: "text-gray-400" };
+
+  return (
+    <span className={`font-mono text-xs font-semibold px-2 py-1 rounded ${config.bg} ${config.text}`}>
+      {config.label}
+    </span>
+  );
+}
 
 export default function ActivityFeed() {
   return (
-    <div className="space-y-1">
-      {activities.map((activity) => {
-        const config = statusConfig[activity.status];
-        const StatusIcon = config.icon;
-        return (
-          <div
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
+      <h3 className="font-sans font-semibold text-lg-text mb-4 flex items-center gap-2">
+        Live Activity
+        <span
+          className="w-2 h-2 rounded-full bg-emerald-500"
+          style={{ animation: "pulse-live 2s ease-in-out infinite" }}
+        />
+      </h3>
+      <div className="space-y-0">
+        {activities.map((activity, i) => (
+          <Link
             key={activity.id}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-gray-50 transition-colors"
+            href={`/review/${activity.checkRunId}`}
+            className="flex items-center gap-4 py-3 px-2 -mx-2 rounded-lg
+                       hover:bg-lg-surface-2 transition-colors group"
+            style={{ animationDelay: `${i * 50}ms`, animation: "fade-in-up 0.3s ease-out backwards" }}
           >
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-full ${config.bg} shrink-0`}
-            >
-              <StatusIcon className={`h-4 w-4 ${config.color}`} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900 truncate">
-                  {activity.repo}
-                </span>
-                <code className="text-xs text-gray-400 font-mono">
-                  {activity.sha}
-                </code>
-              </div>
-              <p className="text-sm text-gray-600 truncate">
-                {activity.commit}
-              </p>
-            </div>
-            <div className="text-right shrink-0">
-              {activity.agent && (
-                <span className="text-xs font-medium text-gray-500">
-                  {activity.agent}
-                </span>
-              )}
-              <p className="text-xs text-gray-400 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
-              </p>
-            </div>
-          </div>
-        );
-      })}
-    </div>
+            <span className="font-mono text-xs text-lg-text-muted w-16 shrink-0">
+              {activity.timeAgo}
+            </span>
+            <span className="font-mono text-xs text-lg-accent w-28 shrink-0 truncate">
+              {activity.repoName}
+            </span>
+            <code className="font-mono text-xs text-lg-text-secondary w-16 shrink-0">
+              {activity.commitSha.slice(0, 7)}
+            </code>
+            <span className="text-sm text-lg-text truncate flex-1 group-hover:text-lg-text transition-colors">
+              {activity.commitMessage}
+            </span>
+            <StatusBadge status={activity.status} />
+          </Link>
+        ))}
+      </div>
+    </Card>
   );
 }

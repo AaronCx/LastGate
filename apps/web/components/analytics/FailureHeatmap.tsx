@@ -1,78 +1,59 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { Card } from "@tremor/react";
 
-interface DailyData {
-  day: string;
-  failed: number;
+function generateData(days: number) {
+  const data: Array<{ date: string; failures: number }> = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    // Simulate: most days 0, some days 1-3, rare days 4+
+    const rand = Math.random();
+    const failures = rand < 0.5 ? 0 : rand < 0.75 ? 1 : rand < 0.9 ? 2 : Math.floor(Math.random() * 5) + 3;
+    data.push({ date: dateStr, failures });
+  }
+  return data;
 }
 
-interface FailureHeatmapProps {
-  data: DailyData[];
-}
+export default function FailureHeatmap({ days = 90 }: { days?: number }) {
+  const data = generateData(days);
+  const maxFailures = Math.max(...data.map((d) => d.failures), 1);
 
-function getIntensity(count: number, max: number): string {
-  if (count === 0) return "bg-gray-100";
-  const ratio = count / Math.max(max, 1);
-  if (ratio > 0.75) return "bg-red-500";
-  if (ratio > 0.5) return "bg-red-400";
-  if (ratio > 0.25) return "bg-red-300";
-  return "bg-red-200";
-}
-
-export default function FailureHeatmap({ data }: FailureHeatmapProps) {
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-32 text-sm text-gray-400">
-        No failure data for this period
-      </div>
-    );
+  function getColor(failures: number): string {
+    if (failures === 0) return "bg-lg-surface-2";
+    const intensity = failures / maxFailures;
+    if (intensity < 0.25) return "bg-red-900/40";
+    if (intensity < 0.5) return "bg-red-700/60";
+    if (intensity < 0.75) return "bg-red-500/80";
+    return "bg-red-500";
   }
-
-  const maxFailed = Math.max(...data.map((d) => d.failed), 1);
-
-  // Group by week (rows) with days as columns
-  const weeks: DailyData[][] = [];
-  let currentWeek: DailyData[] = [];
-
-  // Pad start to align with day of week
-  const firstDay = new Date(data[0].day + "T00:00:00").getDay();
-  for (let i = 0; i < firstDay; i++) {
-    currentWeek.push({ day: "", failed: -1 });
-  }
-
-  for (const d of data) {
-    currentWeek.push(d);
-    if (currentWeek.length === 7) {
-      weeks.push(currentWeek);
-      currentWeek = [];
-    }
-  }
-  if (currentWeek.length > 0) weeks.push(currentWeek);
 
   return (
-    <div className="space-y-3">
-      <div className="flex gap-0.5 flex-wrap">
-        {data.map((d) => (
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
+      <h3 className="font-sans font-semibold text-lg-text mb-4">
+        Failure Heatmap
+      </h3>
+      <div className="flex gap-[3px] flex-wrap">
+        {data.map((day) => (
           <div
-            key={d.day}
-            title={`${d.day}: ${d.failed} failure${d.failed !== 1 ? "s" : ""}`}
-            className={cn(
-              "w-3.5 h-3.5 rounded-sm transition-colors",
-              getIntensity(d.failed, maxFailed)
-            )}
+            key={day.date}
+            className={`w-3 h-3 rounded-sm ${getColor(day.failures)}
+                       hover:ring-2 hover:ring-lg-accent transition-all cursor-pointer`}
+            title={`${day.date}: ${day.failures} failure${day.failures !== 1 ? "s" : ""}`}
           />
         ))}
       </div>
-      <div className="flex items-center gap-1.5 text-xs text-gray-400">
-        <span>Less</span>
-        <div className="w-3 h-3 rounded-sm bg-gray-100" />
-        <div className="w-3 h-3 rounded-sm bg-red-200" />
-        <div className="w-3 h-3 rounded-sm bg-red-300" />
-        <div className="w-3 h-3 rounded-sm bg-red-400" />
+      <div className="flex items-center gap-2 mt-3">
+        <span className="text-[10px] text-lg-text-muted">Less</span>
+        <div className="w-3 h-3 rounded-sm bg-lg-surface-2" />
+        <div className="w-3 h-3 rounded-sm bg-red-900/40" />
+        <div className="w-3 h-3 rounded-sm bg-red-700/60" />
+        <div className="w-3 h-3 rounded-sm bg-red-500/80" />
         <div className="w-3 h-3 rounded-sm bg-red-500" />
-        <span>More</span>
+        <span className="text-[10px] text-lg-text-muted">More</span>
       </div>
-    </div>
+    </Card>
   );
 }

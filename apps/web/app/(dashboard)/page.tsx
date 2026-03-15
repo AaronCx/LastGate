@@ -1,12 +1,8 @@
-"use client";
-
 import OverviewCards from "@/components/dashboard/OverviewCards";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import RepoHealthGrid from "@/components/dashboard/RepoHealthGrid";
-import FailureBreakdown from "@/components/analytics/FailureBreakdown";
-import CheckVolumeChart from "@/components/dashboard/CheckVolumeChart";
 
-export default function OverviewPage() {
+export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
@@ -17,16 +13,7 @@ export default function OverviewPage() {
       </div>
 
       <OverviewCards />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <CheckVolumeChart />
-        </div>
-        <FailureBreakdown />
-      </div>
-
       <RepoHealthGrid />
-
       <ActivityFeed />
     </div>
   );

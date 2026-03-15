@@ -1,60 +1,43 @@
 "use client";
 
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { Card, BarChart } from "@tremor/react";
 
-interface DailyData {
-  day: string;
-  total: number;
-  passed: number;
-  failed: number;
-}
+const data = [
+  { date: "Mar 1", Passed: 12, Failed: 2, Warned: 1 },
+  { date: "Mar 2", Passed: 18, Failed: 1, Warned: 3 },
+  { date: "Mar 3", Passed: 15, Failed: 4, Warned: 2 },
+  { date: "Mar 4", Passed: 22, Failed: 0, Warned: 1 },
+  { date: "Mar 5", Passed: 28, Failed: 3, Warned: 2 },
+  { date: "Mar 6", Passed: 19, Failed: 1, Warned: 0 },
+  { date: "Mar 7", Passed: 25, Failed: 2, Warned: 1 },
+  { date: "Mar 8", Passed: 31, Failed: 1, Warned: 2 },
+  { date: "Mar 9", Passed: 27, Failed: 3, Warned: 1 },
+  { date: "Mar 10", Passed: 35, Failed: 2, Warned: 3 },
+  { date: "Mar 11", Passed: 29, Failed: 0, Warned: 1 },
+  { date: "Mar 12", Passed: 33, Failed: 1, Warned: 0 },
+  { date: "Mar 13", Passed: 38, Failed: 2, Warned: 2 },
+  { date: "Mar 14", Passed: 42, Failed: 1, Warned: 1 },
+];
 
-interface ChecksPerDayProps {
-  data: DailyData[];
-}
-
-export default function ChecksPerDay({ data }: ChecksPerDayProps) {
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64 text-sm text-gray-400">
-        No check data for this period
-      </div>
-    );
-  }
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function ChecksPerDay(_props?: { data?: any[] }) {
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis
-          dataKey="day"
-          tick={{ fontSize: 11, fill: "#9ca3af" }}
-          tickFormatter={(v) => {
-            const d = new Date(v + "T00:00:00");
-            return `${d.getMonth() + 1}/${d.getDate()}`;
-          }}
-        />
-        <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} />
-        <Tooltip
-          contentStyle={{ fontSize: 12, borderRadius: 8 }}
-          labelFormatter={(label) => {
-            const d = new Date(label + "T00:00:00");
-            return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-          }}
-        />
-        <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="passed" stackId="a" fill="#10b981" name="Passed" radius={[0, 0, 0, 0]} />
-        <Bar dataKey="failed" stackId="a" fill="#ef4444" name="Failed" radius={[4, 4, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
+    <Card className="!bg-lg-surface !border-lg-border !ring-0">
+      <h3 className="font-sans font-semibold text-lg-text mb-4">
+        Checks Per Day
+      </h3>
+      <BarChart
+        data={data}
+        index="date"
+        categories={["Passed", "Failed", "Warned"]}
+        colors={["emerald", "red", "amber"]}
+        valueFormatter={(v) => `${v}`}
+        showLegend={true}
+        showGridLines={false}
+        showAnimation={true}
+        stack={true}
+        className="h-72"
+      />
+    </Card>
   );
 }

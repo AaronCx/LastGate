@@ -12,7 +12,7 @@ import {
   FileCode,
   Loader2,
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card } from "@tremor/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import CheckAnnotations from "@/components/review/CheckAnnotations";
@@ -61,20 +61,20 @@ interface CheckRunDetail {
 }
 
 const statusConfig = {
-  pass: { icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-50", label: "Passed" },
-  passed: { icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-50", label: "Passed" },
-  fail: { icon: XCircle, color: "text-red-500", bg: "bg-red-50", label: "Failed" },
-  failed: { icon: XCircle, color: "text-red-500", bg: "bg-red-50", label: "Failed" },
-  warn: { icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-50", label: "Warning" },
-  warning: { icon: AlertTriangle, color: "text-amber-500", bg: "bg-amber-50", label: "Warning" },
+  pass: { icon: CheckCircle, color: "text-lg-pass", bg: "bg-lg-pass/10", label: "Passed" },
+  passed: { icon: CheckCircle, color: "text-lg-pass", bg: "bg-lg-pass/10", label: "Passed" },
+  fail: { icon: XCircle, color: "text-lg-fail", bg: "bg-lg-fail/10", label: "Failed" },
+  failed: { icon: XCircle, color: "text-lg-fail", bg: "bg-lg-fail/10", label: "Failed" },
+  warn: { icon: AlertTriangle, color: "text-lg-warn", bg: "bg-lg-warn/10", label: "Warning" },
+  warning: { icon: AlertTriangle, color: "text-lg-warn", bg: "bg-lg-warn/10", label: "Warning" },
 } as const;
 
 function getStatusConfig(status: string) {
   return (
     statusConfig[status as keyof typeof statusConfig] || {
       icon: AlertTriangle,
-      color: "text-gray-500",
-      bg: "bg-gray-50",
+      color: "text-lg-text-muted",
+      bg: "bg-lg-surface-2",
       label: status,
     }
   );
@@ -163,14 +163,14 @@ export default function ReviewDetailPage() {
         <div className="flex items-center gap-3">
           <Link href="/review">
             <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 text-lg-text" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Loading...</h1>
+          <h1 className="text-2xl font-bold text-lg-text">Loading...</h1>
         </div>
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          <span className="ml-2 text-sm text-gray-500">
+          <Loader2 className="h-6 w-6 animate-spin text-lg-text-muted" />
+          <span className="ml-2 text-sm text-lg-text-secondary">
             Loading check run details...
           </span>
         </div>
@@ -184,18 +184,18 @@ export default function ReviewDetailPage() {
         <div className="flex items-center gap-3">
           <Link href="/review">
             <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 text-lg-text" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Error</h1>
+          <h1 className="text-2xl font-bold text-lg-text">Error</h1>
         </div>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <XCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-900">
+        <Card className="!bg-lg-surface !border-lg-border !ring-0">
+          <div className="py-12 text-center">
+            <XCircle className="h-10 w-10 text-lg-fail mx-auto mb-3" />
+            <p className="text-sm font-medium text-lg-text">
               {error || "Check run not found"}
             </p>
-          </CardContent>
+          </div>
         </Card>
       </div>
     );
@@ -222,15 +222,16 @@ export default function ReviewDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/review">
           <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 text-lg-text" />
           </Button>
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-lg-text">
               {checkRun.commit_message
                 ? checkRun.commit_message.length > 80
                   ? checkRun.commit_message.slice(0, 80) + "..."
@@ -239,16 +240,16 @@ export default function ReviewDetailPage() {
             </h1>
             <Badge variant={overallBadge.variant}>{overallBadge.label}</Badge>
           </div>
-          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+          <div className="flex items-center gap-3 mt-1 text-sm text-lg-text-secondary">
             {checkRun.pr_number && <span>#{checkRun.pr_number}</span>}
-            <code className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+            <code className="font-mono text-xs bg-lg-surface-2 text-lg-text-secondary px-1.5 py-0.5 rounded">
               {checkRun.branch}
             </code>
-            <code className="font-mono text-xs text-gray-400">
+            <code className="font-mono text-xs text-lg-text-muted">
               {checkRun.commit_sha.slice(0, 8)}
             </code>
             {checkRun.commit_author && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 text-lg-text-secondary">
                 {checkRun.is_agent_commit && <Bot className="h-3.5 w-3.5" />}
                 {checkRun.commit_author}
               </div>
@@ -257,89 +258,102 @@ export default function ReviewDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Check results sidebar */}
-        <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
-            Check Results
-          </h2>
-          {checkRun.results.length === 0 ? (
-            <p className="text-sm text-gray-500">No check results available.</p>
-          ) : (
-            checkRun.results.map((result) => {
-              const config = getStatusConfig(result.status);
-              const StatusIcon = config.icon;
-              const isActive = activeCheck === result.id;
-              return (
-                <button
-                  key={result.id}
-                  onClick={() => setActiveCheck(result.id)}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
-                    isActive
-                      ? "bg-blue-50 border border-blue-200"
-                      : "hover:bg-gray-50 border border-transparent"
-                  }`}
-                >
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${config.bg} shrink-0`}
-                  >
-                    <StatusIcon className={`h-4 w-4 ${config.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      {result.title}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {result.summary || result.check_type}
-                    </p>
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    {formatDuration(result.duration_ms)}
-                  </span>
-                </button>
-              );
-            })
-          )}
-        </div>
-
-        {/* Annotations */}
-        <div className="lg:col-span-2 space-y-6">
-          {activeResult && annotations.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileCode className="h-4 w-4" />
-                  {activeResult.title} -- Findings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CheckAnnotations annotations={annotations} />
-              </CardContent>
-            </Card>
-          ) : activeResult ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <CheckCircle className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
-                <p className="text-sm font-medium text-gray-900">
-                  No issues found
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {activeResult.summary || "Check passed"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {/* Actions */}
-          <ReviewActions runId={runId} />
-
-          {/* Agent Feedback Preview */}
-          <AgentFeedback
-            agent={checkRun.commit_author || "Agent"}
-            failedChecks={failedAndWarnedChecks}
-          />
-        </div>
+      {/* Check Status Pills - horizontal row */}
+      <div className="flex gap-2 flex-wrap">
+        {checkRun.results.length === 0 ? (
+          <p className="text-sm text-lg-text-muted">No check results available.</p>
+        ) : (
+          checkRun.results.map((result) => {
+            const config = getStatusConfig(result.status);
+            const StatusIcon = config.icon;
+            const isActive = activeCheck === result.id;
+            return (
+              <button
+                key={result.id}
+                onClick={() => setActiveCheck(result.id)}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-all ${
+                  isActive
+                    ? "bg-lg-accent/15 border border-lg-accent/40 ring-1 ring-lg-accent/20"
+                    : "bg-lg-surface border border-lg-border hover:bg-lg-surface-2"
+                }`}
+              >
+                <StatusIcon className={`h-4 w-4 ${config.color} shrink-0`} />
+                <span className={`text-sm font-mono ${isActive ? "text-lg-text" : "text-lg-text-secondary"}`}>
+                  {result.title}
+                </span>
+                <span className="text-xs text-lg-text-muted font-mono">
+                  {formatDuration(result.duration_ms)}
+                </span>
+              </button>
+            );
+          })
+        )}
       </div>
+
+      {/* Findings */}
+      {activeResult && annotations.length > 0 ? (
+        <Card className="!bg-lg-surface !border-lg-border !ring-0">
+          <div className="flex items-center gap-2 mb-4">
+            <FileCode className="h-4 w-4 text-lg-accent" />
+            <h3 className="font-sans font-semibold text-lg-text">
+              {activeResult.title} -- Findings
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {annotations.map((ann, idx) => (
+              <div
+                key={idx}
+                className="rounded-lg border border-lg-border overflow-hidden"
+              >
+                {/* File header */}
+                <div className="flex items-center gap-2 px-3 py-2 bg-lg-surface-2 border-b border-lg-border">
+                  <FileCode className="h-3.5 w-3.5 text-lg-text-muted" />
+                  <span className="font-mono text-xs text-lg-text-secondary">
+                    {ann.file}
+                    {ann.line > 0 && `:${ann.line}`}
+                  </span>
+                  <span
+                    className={`ml-auto text-[10px] font-mono uppercase px-1.5 py-0.5 rounded ${
+                      ann.severity === "error"
+                        ? "bg-lg-fail/10 text-lg-fail"
+                        : "bg-lg-warn/10 text-lg-warn"
+                    }`}
+                  >
+                    {ann.severity}
+                  </span>
+                </div>
+                {/* Code snippet / message */}
+                <div className="px-3 py-2 bg-lg-bg">
+                  <pre className="font-mono text-xs text-lg-text whitespace-pre-wrap">
+                    {ann.message}
+                  </pre>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : activeResult ? (
+        <Card className="!bg-lg-surface !border-lg-border !ring-0">
+          <div className="py-12 text-center">
+            <CheckCircle className="h-10 w-10 text-lg-pass mx-auto mb-3" />
+            <p className="text-sm font-medium text-lg-text">
+              No issues found
+            </p>
+            <p className="text-xs text-lg-text-muted mt-1">
+              {activeResult.summary || "Check passed"}
+            </p>
+          </div>
+        </Card>
+      ) : null}
+
+      {/* Actions */}
+      <ReviewActions runId={runId} />
+
+      {/* Agent Feedback Preview */}
+      <AgentFeedback
+        agent={checkRun.commit_author || "Agent"}
+        failedChecks={failedAndWarnedChecks}
+      />
     </div>
   );
 }
