@@ -5,12 +5,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: repoId } = await params;
     const supabase = createServerSupabaseClient();
     const { searchParams } = new URL(request.url);
-    const repoId = params.id;
 
     const range = searchParams.get("range") || "7d";
     const daysBack = range === "90d" ? 90 : range === "30d" ? 30 : 7;

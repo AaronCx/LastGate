@@ -5,9 +5,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = createServerSupabaseClient();
     const { searchParams } = new URL(request.url);
 
@@ -17,7 +18,7 @@ export async function GET(
     const { data, error, count } = await supabase
       .from("audit_log")
       .select("*, users(github_username)", { count: "exact" })
-      .eq("team_id", params.id)
+      .eq("team_id", id)
       .order("created_at", { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
 

@@ -6,15 +6,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = createServerSupabaseClient();
 
     const { data: checkRun, error: checkRunError } = await supabase
       .from("check_runs")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", id)
       .single();
 
     if (checkRunError || !checkRun) {
@@ -27,7 +28,7 @@ export async function GET(
     const { data: checkResults, error: resultsError } = await supabase
       .from("check_results")
       .select("*")
-      .eq("check_run_id", params.id)
+      .eq("check_run_id", id)
       .order("created_at", { ascending: true });
 
     if (resultsError) {
@@ -52,11 +53,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = createServerSupabaseClient();
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const sessionId = cookieStore.get("lastgate_session")?.value;
 
     if (!sessionId) {
@@ -82,7 +84,7 @@ export async function POST(
     const { data: checkRun, error: checkRunError } = await supabase
       .from("check_runs")
       .select("id")
-      .eq("id", params.id)
+      .eq("id", id)
       .single();
 
     if (checkRunError || !checkRun) {
@@ -91,7 +93,7 @@ export async function POST(
 
     // Insert the review action
     const { error: insertError } = await supabase.from("review_actions").insert({
-      check_run_id: params.id,
+      check_run_id: id,
       user_id: sessionId,
       action,
       comment: comment || null,

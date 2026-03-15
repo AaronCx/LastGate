@@ -5,14 +5,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = createServerSupabaseClient();
     const { data, error } = await supabase
       .from("team_members")
       .select("*, users(github_username, avatar_url, email)")
-      .eq("team_id", params.id)
+      .eq("team_id", id)
       .order("joined_at", { ascending: true });
 
     if (error) {
@@ -26,9 +27,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = createServerSupabaseClient();
     const body = await request.json();
     const { user_id, role, invited_by } = body;
@@ -39,7 +41,7 @@ export async function POST(
 
     const { data, error } = await supabase
       .from("team_members")
-      .insert({ team_id: params.id, user_id, role, invited_by })
+      .insert({ team_id: id, user_id, role, invited_by })
       .select()
       .single();
 
