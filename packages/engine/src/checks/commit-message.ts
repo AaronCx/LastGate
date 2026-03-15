@@ -97,6 +97,7 @@ export async function checkCommitMessage(
     details: {
       findings,
       count: findings.length,
+      received: commits.length > 0 ? commits[0].message.split("\n")[0].trim() : undefined,
     },
   };
 }

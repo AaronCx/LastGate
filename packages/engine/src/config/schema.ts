@@ -73,7 +73,6 @@ const pipelineConfigSchema = z.object({
     email: z.string().optional(),
   }).optional(),
   agent_feedback: z.object({
-    enabled: z.boolean(),
     format: z.enum(["structured", "human-readable", "both"]),
   }).optional(),
 });

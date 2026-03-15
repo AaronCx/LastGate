@@ -1,197 +1,286 @@
 <p align="center">
-  <h1 align="center">🛡️ LastGate</h1>
-  <p align="center"><strong>Stop AI agents from breaking your repos</strong></p>
-  <p align="center">An AI agent commit guardian that intercepts AI-generated code commits, runs safety checks, and reports results — before anything lands in your codebase.</p>
+  <img src="apps/web/app/icon.svg" width="80" height="80" alt="LastGate">
+  <h1 align="center">LastGate</h1>
+  <p align="center"><strong>AI Agent Commit Guardian</strong></p>
+  <p align="center">A pre-flight checklist and gatekeeper for AI-generated code.<br>Intercepts commits from Claude Code, Cursor, Copilot, Devin, and others &mdash; runs safety checks, blocks bad code, and feeds failures back to the agent so it can self-correct.</p>
 </p>
 
 <p align="center">
   <a href="https://github.com/AaronCx/LastGate/actions"><img src="https://img.shields.io/github/actions/workflow/status/AaronCx/LastGate/ci.yml?branch=main&label=CI&logo=github" alt="CI"></a>
-  <a href="https://www.npmjs.com/package/lastgate"><img src="https://img.shields.io/npm/v/lastgate?logo=npm&color=cb3837" alt="npm version"></a>
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.3-blue?logo=typescript&logoColor=white" alt="TypeScript"></a>
+  <a href="https://www.npmjs.com/package/lastgate"><img src="https://img.shields.io/npm/v/lastgate?logo=npm&color=cb3837" alt="npm"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.3-3178C6?logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-1.1-f9f1e1?logo=bun&logoColor=000" alt="Bun"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"></a>
 </p>
 
 ---
 
-![Dashboard](docs/dashboard-preview.png)
+## The Problem
 
----
+AI coding agents are writing more production code every day. But they ship unchecked work that can:
 
-## Why LastGate?
+- **Leak secrets** &mdash; API keys, tokens, and credentials hardcoded in source
+- **Break builds** &mdash; type errors, lint failures, missing dependencies
+- **Introduce vulnerabilities** &mdash; outdated packages with known CVEs
+- **Thrash on problems** &mdash; rewriting the same file repeatedly without progress
+- **Ignore conventions** &mdash; skipping tests, bad commit messages, blocked files
 
-AI coding agents (Copilot, Cursor, Claude Code, Devin, etc.) are writing more code than ever. But they commit unchecked code that can:
+## The Solution
 
-- **Leak secrets** — API keys, tokens, and credentials hardcoded into source files
-- **Break builds** — type errors, lint failures, and missing dependencies
-- **Introduce vulnerabilities** — outdated packages with known CVEs
-- **Thrash on problems** — rewriting the same file over and over without progress
-- **Ignore conventions** — skipping tests, violating file structure rules, malformed commit messages
+LastGate installs as a **GitHub App** on your repos. Every push and pull request triggers a configurable pipeline of safety checks. Failures block the merge via branch protection and are posted as structured PR comments that agents can parse and act on automatically.
 
-**LastGate** sits between the AI agent and your repository. Every push and pull request triggers a pipeline of safety checks. Problems are caught, reported to GitHub Checks, and fed back to the agent as structured comments so it can self-correct.
-
-No more reviewing AI slop. LastGate is the last gate before code lands.
+Think of it as: **"What if your CI pipeline could talk back to your AI agent?"**
 
 ---
 
 ## Features
 
-| | Check | What It Does |
+| Check | What It Catches | Severity |
 |---|---|---|
-| 🔐 | **Secret Scanner** | Detects API keys, tokens, passwords, and high-entropy strings across 20+ regex patterns |
-| 🔄 | **Duplicate Detector** | Finds copy-pasted code blocks and redundant logic introduced by agents |
-| 🧹 | **Lint & Type Check** | Runs ESLint and TypeScript compiler checks against the diff |
-| 🏗️ | **Build Verifier** | Ensures the project still builds after changes |
-| 📦 | **Dependency Auditor** | Checks added/changed dependencies for known vulnerabilities |
-| 📁 | **File Pattern Guard** | Enforces allowed/blocked file paths and naming conventions |
-| 📝 | **Commit Message Validator** | Validates commit messages against conventional commit format |
-| 🤖 | **Agent Pattern Analysis** | Detects thrashing, scope creep, config churn, and test skipping |
+| **Secret Scanner** | API keys, tokens, passwords, high-entropy strings (20+ patterns + Shannon entropy) | Fail |
+| **Duplicate Detector** | Identical/near-identical commits, reverts, agent thrashing | Warn |
+| **Lint & Type Check** | ESLint, Biome, Ruff errors with auto-detection | Fail |
+| **Build Verifier** | Build failures with configurable timeout and command | Fail |
+| **Dependency Auditor** | Known CVEs via `bun pm audit` / `npm audit`, lockfile drift | Warn |
+| **File Pattern Guard** | `.env`, `node_modules/`, `.DS_Store`, build artifacts, custom patterns | Fail |
+| **Commit Message Validator** | Conventional commits, generic messages, code dumps | Warn |
+| **Agent Behavior Patterns** | File thrashing, scope creep, config churn, missing tests | Warn |
+
+---
+
+## How It Works
+
+```
+Developer uses AI agent (Claude Code, Cursor, Copilot, etc.)
+       |
+       v
+Agent creates commits / opens PR
+       |
+       v
+GitHub sends webhook to LastGate
+       |
+       v
++-------------------------------+
+|     LastGate Check Engine     |
+|                               |
+|  1. Fetch the diff            |
+|  2. Run 8 check types         |
+|  3. Report via Checks API     |
+|  4. Post PR comment           |
+|  5. Store results in DB       |
+|  6. Feed back to agent        |
++-------------------------------+
+       |
+       v
++-------------------------------+
+|     LastGate Dashboard        |
+|                               |
+|  - Real-time check status     |
+|  - Agent activity feed        |
+|  - Approve / Request Changes  |
+|  - Pattern analytics          |
+|  - Branch protection status   |
++-------------------------------+
+```
+
+**Three layers of deploy protection:**
+1. **GitHub Branch Protection** &mdash; LastGate auto-configures itself as a required status check. Failed checks block merge.
+2. **GitHub Checks API** &mdash; Correct conclusion mapping (`failure` = red X, `neutral` = yellow, `success` = green).
+3. **Direct Push Alerts** &mdash; If someone pushes directly to a protected branch, LastGate posts a warning comment on the commit.
 
 ---
 
 ## Quick Start
 
-Getting started takes under two minutes:
+### 1. Install the GitHub App
 
-1. **Install the GitHub App** — Add LastGate to your repository from the GitHub Marketplace
-2. **Add `.lastgate.yml`** — Drop a config file in your repo root (or use defaults)
-3. **Done** — Every AI-generated push and PR is now guarded
+Add LastGate to your repos from the [GitHub App page](https://github.com/apps/lastgate). It automatically configures branch protection on `main`.
+
+### 2. Add a config file (optional)
 
 ```yaml
 # .lastgate.yml
+version: 1
+
 checks:
-  secrets: { enabled: true, severity: error }
-  duplicates: { enabled: true, severity: warning }
-  lint: { enabled: true, severity: error }
-  build: { enabled: true, severity: error }
-  dependencies: { enabled: true, severity: warning }
-  file_patterns: { enabled: true, severity: warning }
-  commit_message: { enabled: true, severity: warning }
-  agent_patterns: { enabled: true, severity: warning }
+  secrets:
+    enabled: true
+    severity: fail
+    custom_patterns:
+      - name: "Internal API Key"
+        pattern: "INTERNAL_[A-Z]+_KEY=[A-Za-z0-9]{32,}"
+
+  duplicates:
+    enabled: true
+    severity: warn
+    lookback: 10
+
+  lint:
+    enabled: true
+    severity: fail
+
+  build:
+    enabled: true
+    severity: fail
+    command: "bun run build"
+    timeout: 120
+
+  dependencies:
+    enabled: true
+    severity: warn
+    fail_on: critical
+
+  file_patterns:
+    enabled: true
+    severity: fail
+    block:
+      - "*.sqlite"
+      - "dump.sql"
+    allow:
+      - ".env.example"
+
+  commit_message:
+    enabled: true
+    severity: warn
+    require_conventional: true
+
+  agent_patterns:
+    enabled: true
+    severity: warn
+
+protected_branches:
+  - main
+  - production
 ```
+
+### 3. Push code
+
+Every commit and PR now gets checked. No configuration required for defaults &mdash; all 8 checks run out of the box.
 
 ---
 
 ## CLI
 
-Install the CLI globally:
+Run checks locally before pushing &mdash; especially useful as a pre-commit hook for AI agent workflows.
 
 ```bash
+# Install globally
 bun install -g lastgate
-```
 
-### Commands
-
-```bash
-# Run all checks against the current working tree
+# Run all checks on staged changes
 lastgate check
 
-# Initialize a .lastgate.yml config in your repo
+# Run specific checks only
+lastgate check --only secrets,lint
+
+# Check against a branch diff
+lastgate check --branch feature/new-agent
+
+# Force mode (report issues but exit 0)
+lastgate check --force
+
+# Initialize a .lastgate.yml config
 lastgate init
 
-# Authenticate with your LastGate account
+# Connect to your dashboard
 lastgate login
 
-# View check history for the current repo
+# View check history
 lastgate history
+```
 
-# Run a specific check
-lastgate check --only secrets
+### CLI Output
 
-# Check a specific commit range
-lastgate check --range HEAD~3..HEAD
+```
+ LastGate Pre-flight Check
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ ✗ Secrets                Secret Scanner (0.0s)  FAIL
+     ├─ config.ts:7                    Generic API Key Assignment (API_***789")
+     └─ config.ts:8                    PostgreSQL Connection String (post***prod)
+
+ ✗ File Patterns          File Pattern Guard  FAIL
+     └─ .env.local                     Blocked file pattern: .env.*
+
+ ✓ Lint                   Lint & Type Check  PASS
+ ✓ Build                  Build Verifier (1.2s)  PASS
+ ✓ Dependencies           Dependency Auditor  PASS
+ ✓ Duplicates             Duplicate Commit Detector  PASS
+
+ △ Commit Message         Commit Message Validator  WARN
+     └─ Received: "update stuff" → Expected: type(scope): description
+
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Result: BLOCKED — 2 failed, 1 warning, 4 passed
+
+ Failures:
+    SECRETS           config.ts:7                    — Generic API Key Assignment
+    FILE_PATTERNS     .env.local                     — Blocked file pattern: .env.*
+
+ Fix these issues before pushing.
 ```
 
 ---
 
-## Check Types
+## PR Comment (Auto-Feedback)
 
-| Check | Description | Default Severity |
-|---|---|---|
-| `secrets` | Scans for API keys, tokens, credentials, and high-entropy strings | `error` |
-| `duplicates` | Detects duplicated code blocks within the diff | `warning` |
-| `lint` | Runs ESLint and TypeScript type checking | `error` |
-| `build` | Verifies the project builds without errors | `error` |
-| `dependencies` | Audits new/changed dependencies for known CVEs | `warning` |
-| `file_patterns` | Enforces file path allowlists and blocklists | `warning` |
-| `commit_message` | Validates conventional commit message format | `warning` |
-| `agent_patterns` | Detects AI agent behavioral anti-patterns | `warning` |
+Every check run automatically posts a detailed PR comment with findings. Agents can parse the structured `<!-- lastgate:feedback -->` section to self-correct.
 
-Severity levels:
-- **`error`** — Fails the check run. PR cannot merge (if branch protection is enabled).
-- **`warning`** — Passes with annotations. Visible but non-blocking.
-- **`info`** — Informational only. Logged to the dashboard.
+```markdown
+## LastGate Pre-flight Report
+
+**Status:** 2 failed, 1 warning, 5 passed | View in Dashboard
 
 ---
 
-## Configuration
+### SECRETS
 
-Create a `.lastgate.yml` file in your repository root:
+| File | Line | Pattern | Detail |
+|------|------|---------|--------|
+| `src/config.ts` | 14 | OpenAI Project Key | `sk-p***ghij` |
 
-```yaml
-# .lastgate.yml — LastGate Configuration
+> Action required: Rotate any exposed keys immediately.
 
-# Global settings
-version: 1
-agent_feedback: true          # Post structured PR comments for agent self-correction
-fail_on_error: true            # Fail the GitHub Check if any error-severity finding exists
+### COMMIT_MESSAGE
 
-# Check configuration
-checks:
-  secrets:
-    enabled: true
-    severity: error
-    allow:
-      - "**/*.example"         # Ignore example files
-      - ".env.sample"
-    custom_patterns:
-      - name: "Internal Token"
-        regex: "INTERNAL_[A-Z]+_TOKEN=['\"][^'\"]+['\"]"
+- **Received:** `update stuff`
+- **Expected:** `type(scope): description`
+- **Examples:** `feat: add user auth`, `fix: resolve race condition`
 
-  duplicates:
-    enabled: true
-    severity: warning
-    min_lines: 6               # Minimum duplicate block size
-    min_tokens: 50             # Minimum token count
+---
 
-  lint:
-    enabled: true
-    severity: error
-    config: .eslintrc.json     # Custom ESLint config path
+## Agent Instructions
 
-  build:
-    enabled: true
-    severity: error
-    command: "bun run build"   # Custom build command
+### SECRETS (FAIL)
+- File: `src/config.ts`, Line 14
+  - Issue: Possible OpenAI API key detected
+  - Fix: Move this value to an environment variable
 
-  dependencies:
-    enabled: true
-    severity: warning
-    block_licenses:            # Block specific licenses
-      - GPL-3.0
-      - AGPL-3.0
-
-  file_patterns:
-    enabled: true
-    severity: warning
-    blocked:
-      - "**/*.env"
-      - "**/credentials.*"
-      - "**/.secret*"
-    required:
-      - "src/**/*.test.ts"     # Require tests alongside source
-
-  commit_message:
-    enabled: true
-    severity: warning
-    pattern: "^(feat|fix|docs|style|refactor|test|chore)(\\(.+\\))?: .{1,72}$"
-
-  agent_patterns:
-    enabled: true
-    severity: warning
-    thrash_threshold: 3        # Flag if same file changed 3+ times in sequence
-    scope_creep_files: 10      # Flag if PR touches more than 10 files
+### COMMIT_MESSAGE (WARN)
+- Commit: `abc1234`
+  - Issue: Does not follow conventional format
+  - Fix: Amend to conventional commits format
 ```
+
+No toggle, no button &mdash; feedback is always on. The agent gets what it needs to fix the issue on the next push.
+
+---
+
+## MCP Server
+
+For AI agents that support Model Context Protocol (Claude Code, etc.), LastGate provides an MCP server:
+
+```json
+{
+  "lastgate": {
+    "command": "bunx",
+    "args": ["@lastgate/mcp-server"],
+    "env": { "LASTGATE_API_KEY": "lg_your_key_here" }
+  }
+}
+```
+
+The agent can query `lastgate_config`, `lastgate_pre_check`, `lastgate_history`, and `lastgate_status` tools directly.
 
 ---
 
@@ -199,82 +288,89 @@ checks:
 
 ```mermaid
 graph LR
-    A[GitHub] -->|push / pull_request / check_suite| B[Webhook]
-    B --> C[LastGate Engine]
-    C --> D[Check Pipeline]
-    D --> D1[🔐 Secrets]
-    D --> D2[🔄 Duplicates]
-    D --> D3[🧹 Lint]
-    D --> D4[🏗️ Build]
-    D --> D5[📦 Dependencies]
-    D --> D6[📁 File Patterns]
-    D --> D7[📝 Commit Message]
-    D --> D8[🤖 Agent Patterns]
+    A[GitHub] -->|push / pull_request| B[Webhook Handler]
+    B --> C[Check Engine]
+    C --> D1[Secrets]
+    C --> D2[Duplicates]
+    C --> D3[Lint]
+    C --> D4[Build]
+    C --> D5[Dependencies]
+    C --> D6[File Patterns]
+    C --> D7[Commit Message]
+    C --> D8[Agent Patterns]
     D1 & D2 & D3 & D4 & D5 & D6 & D7 & D8 --> E[Results]
     E --> F[GitHub Checks API]
-    E --> G[Dashboard]
-    E --> H[Agent Feedback]
-    H -->|Structured PR Comment| A
+    E --> G[PR Comment]
+    E --> H[Dashboard + Supabase]
+    E --> I[Branch Protection]
 ```
 
----
+### Monorepo Structure
+
+```
+lastgate/
+├── apps/web/              # Next.js 14 dashboard + API + webhook handler
+├── packages/engine/       # Core check pipeline (shared by web + CLI)
+├── packages/cli/          # CLI tool (lastgate command)
+├── packages/sdk/          # SDK for writing custom checks
+├── packages/mcp-server/   # MCP server for AI agents
+├── supabase/              # Database migrations
+├── docs/                  # Architecture, setup, check reference
+└── .github/workflows/     # CI + release automation
+```
 
 ## Tech Stack
 
-<p>
-  <img src="https://img.shields.io/badge/Next.js-14-000?logo=next.js" alt="Next.js 14">
-  <img src="https://img.shields.io/badge/TypeScript-5.3-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Bun-1.1-f9f1e1?logo=bun&logoColor=000" alt="Bun">
-  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3FCF8E?logo=supabase&logoColor=white" alt="Supabase">
-  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS">
-  <img src="https://img.shields.io/badge/GitHub_App-Webhooks-181717?logo=github" alt="GitHub App">
-</p>
-
 | Layer | Technology |
 |---|---|
-| **Web App** | Next.js 14 (App Router), React, Tailwind CSS |
-| **Runtime** | Bun |
+| **Web** | Next.js 14 (App Router), React 18, Tailwind CSS, shadcn/ui |
+| **Runtime** | Bun (package manager, bundler, test runner) |
 | **Language** | TypeScript (strict mode) |
-| **Database** | Supabase (PostgreSQL + Auth + RLS) |
-| **GitHub Integration** | GitHub App (Webhooks, Checks API, REST/GraphQL) |
+| **Database** | Supabase (PostgreSQL + Auth + Row-Level Security) |
+| **GitHub** | GitHub App (Webhooks, Checks API, Octokit) |
 | **CI/CD** | GitHub Actions |
-| **CLI** | Bun-based CLI with Commander.js |
+| **CLI** | Commander.js, Chalk, Ora |
 
 ---
 
-## Agent Feedback Loop
+## Development
 
-When LastGate finds issues in an AI-agent-generated PR, it doesn't just fail a check — it posts a **structured PR comment** designed for the agent to parse and act on.
+```bash
+# Clone and install
+git clone https://github.com/AaronCx/LastGate.git
+cd LastGate
+bun install
 
-```markdown
-## 🛡️ LastGate Report
+# Start dev server
+bun run dev
 
-### Findings (3 errors, 1 warning)
+# Run tests (1247 tests across 112 files)
+bun test
 
-| # | Severity | Check | File | Line | Description |
-|---|----------|-------|------|------|-------------|
-| 1 | 🔴 error | secrets | src/api/client.ts | 14 | Hardcoded API key detected (pattern: `AKIA[0-9A-Z]{16}`) |
-| 2 | 🔴 error | lint | src/utils/parse.ts | 27 | TypeScript error TS2345: Argument of type 'string' is not assignable |
-| 3 | 🔴 error | build | — | — | Build failed with exit code 1 |
-| 4 | 🟡 warning | agent_patterns | — | — | Thrashing detected: `config.ts` modified 5 times in last 8 commits |
+# Build all packages
+bun run build
 
-### Suggested Fixes
-1. **secrets**: Move the API key to an environment variable. Use `process.env.AWS_ACCESS_KEY_ID` instead.
-2. **lint**: Check the type signature of `parseInput()` — expected `number`, received `string`.
-3. **build**: Run `bun run build` locally and fix compilation errors before pushing.
-4. **agent_patterns**: Step back and reassess your approach to `config.ts` instead of repeatedly modifying it.
+# Type check
+bun run type-check
 ```
 
-This format gives AI agents the structured context they need to fix issues autonomously, reducing review cycles.
+See [docs/SETUP.md](docs/SETUP.md) for full local development setup including Supabase and GitHub App configuration.
+
+---
+
+## Documentation
+
+- [**SETUP.md**](docs/SETUP.md) &mdash; Local development setup
+- [**ARCHITECTURE.md**](docs/ARCHITECTURE.md) &mdash; System design and data flow
+- [**CHECKS.md**](docs/CHECKS.md) &mdash; Detailed reference for all 8 check types
+- [**CONTRIBUTING.md**](CONTRIBUTING.md) &mdash; Development workflow and PR guidelines
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and PR guidelines.
-
----
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and pull request guidelines.
 
 ## License
 
-[MIT](LICENSE) — Built by [Aaron Character](https://github.com/AaronCx)
+[MIT](LICENSE) &mdash; Built by [Aaron Character](https://github.com/AaronCx)

@@ -68,7 +68,6 @@ export interface PipelineConfig {
     email?: string;
   };
   agent_feedback?: {
-    enabled: boolean;
     format: "structured" | "human-readable" | "both";
   };
 }

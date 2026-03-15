@@ -3,6 +3,10 @@ import { verifyWebhookSignature } from "@/lib/github/webhooks";
 import { createCheckRun, updateCheckRun } from "@/lib/github/checks";
 import { getInstallationOctokit } from "@/lib/github/app";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { buildPRComment } from "@/lib/github/comments";
+import { postCommitComment, buildDirectPushWarning } from "@/lib/github/commit-comments";
+import { dispatchNotification } from "@/lib/github/notifications";
+import { configureBranchProtection } from "@/lib/github/branch-protection";
 import { runCheckPipeline } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo } from "@lastgate/engine";
 
@@ -212,7 +216,7 @@ async function handleCheckEvent(
     owner: repoOwner,
     repo: repoName,
     headSha,
-    name: "LastGate Check Pipeline",
+    name: "LastGate Pre-flight Check",
   });
     console.log(`[webhook] GitHub Check Run created id=${checkRun.id}`);
   } catch (err) {
@@ -355,6 +359,84 @@ async function handleCheckEvent(
         warned_checks: warned,
       })
       .eq("id", checkRunRecord.id);
+  }
+
+  // Post PR comment with full report (auto-feedback)
+  const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lastgate.dev";
+  const comment = buildPRComment(pipelineResult, `${dashboardUrl}/review/${checkRunRecord?.id}`);
+
+  // Find PR associated with this branch
+  let targetPrNumber = prNumber;
+  if (!targetPrNumber && event === "push") {
+    try {
+      const prs = await octokit.request("GET /repos/{owner}/{repo}/pulls", {
+        owner: repoOwner,
+        repo: repoName,
+        head: `${repoOwner}:${branch}`,
+        state: "open",
+      });
+      if (prs.data.length > 0) {
+        targetPrNumber = (prs.data[0] as Record<string, unknown>).number as number;
+      }
+    } catch (err) {
+      console.error("[webhook] Failed to find PR for branch:", err);
+    }
+  }
+
+  if (targetPrNumber) {
+    try {
+      // Check if LastGate already has a comment on this PR
+      const existingComments = await octokit.request(
+        "GET /repos/{owner}/{repo}/issues/{issue_number}/comments",
+        { owner: repoOwner, repo: repoName, issue_number: targetPrNumber }
+      );
+      const lastgateComment = (existingComments.data as Array<Record<string, unknown>>).find(
+        (c) => (c.body as string)?.includes("🛡 LastGate Pre-flight Report")
+      );
+
+      if (lastgateComment) {
+        // UPDATE existing comment (don't spam with new ones)
+        await octokit.request(
+          "PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}",
+          {
+            owner: repoOwner,
+            repo: repoName,
+            comment_id: lastgateComment.id as number,
+            body: comment,
+          }
+        );
+        console.log(`[webhook] Updated existing PR comment on #${targetPrNumber}`);
+      } else {
+        // CREATE new comment
+        await octokit.request(
+          "POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
+          {
+            owner: repoOwner,
+            repo: repoName,
+            issue_number: targetPrNumber,
+            body: comment,
+          }
+        );
+        console.log(`[webhook] Created new PR comment on #${targetPrNumber}`);
+      }
+    } catch (err) {
+      console.error("[webhook] Failed to post PR comment:", err);
+    }
+  }
+
+  // Direct push protection
+  const protectedBranches = (repoConfig as Record<string, unknown>)?.protected_branches as string[] | undefined;
+  const isProtectedBranch = protectedBranches?.includes(branch) || branch === "main" || branch === "master";
+
+  if (event === "push" && isProtectedBranch && pipelineResult.hasFailures) {
+    // Post warning comment on the commit itself
+    const warningBody = buildDirectPushWarning(branch, pipelineResult);
+    await postCommitComment(octokit, repoOwner, repoName, headSha, warningBody);
+
+    // Send urgent notification
+    await dispatchNotification(repoId, pipelineResult, { urgent: true });
+
+    console.log(`[webhook] Direct push to protected branch ${branch} with failures — posted warning`);
   }
 
   return NextResponse.json({

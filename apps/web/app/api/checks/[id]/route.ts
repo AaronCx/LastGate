@@ -70,7 +70,7 @@ export async function POST(
       return NextResponse.json({ error: "action is required" }, { status: 400 });
     }
 
-    const validActions = ["approve", "request-changes", "send-back"];
+    const validActions = ["approve", "request-changes"];
     if (!validActions.includes(action)) {
       return NextResponse.json(
         { error: `Invalid action. Must be one of: ${validActions.join(", ")}` },

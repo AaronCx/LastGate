@@ -160,6 +160,11 @@ export async function checkDependencies(
       ? "Dependency check passed"
       : `Found ${issues.length} dependency issue(s)`,
     details: {
+      findings: issues.map(i => ({
+        file: i.file,
+        message: i.message,
+        severity: i.severity,
+      })),
       issues,
       count: issues.length,
     },

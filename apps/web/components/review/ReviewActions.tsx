@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, XCircle, RotateCcw, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
@@ -90,21 +90,6 @@ export default function ReviewActions({ runId }: ReviewActionsProps) {
             {confirming === "request-changes"
               ? "Confirm Request Changes?"
               : "Request Changes"}
-          </Button>
-          <Button
-            onClick={() => handleAction("send-back")}
-            disabled={submitting}
-            variant="outline"
-            className="flex-1"
-          >
-            {submitting && confirming === "send-back" ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <RotateCcw className="h-4 w-4 mr-2" />
-            )}
-            {confirming === "send-back"
-              ? "Confirm Send Back?"
-              : "Send Back to Agent"}
           </Button>
         </div>
         {confirming && !submitting && (

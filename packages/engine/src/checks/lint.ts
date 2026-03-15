@@ -47,6 +47,7 @@ function detectLinter(cwd: string): string | null {
 interface LintError {
   file?: string;
   line?: number;
+  rule?: string;
   message: string;
 }
 
@@ -60,10 +61,14 @@ function parseOutput(stdout: string, stderr: string): LintError[] {
 
     const match = line.match(/^(.+?):(\d+)(?::\d+)?:\s*(?:error|Error|ERR)\s*(.+)/);
     if (match) {
+      const msg = match[3].trim();
+      // Try to extract rule name from message (e.g. "no-unused-vars" or "(no-unused-vars)")
+      const ruleMatch = msg.match(/\(?([\w-]+\/[\w-]+|[\w-]{3,})\)?$/);
       errors.push({
         file: match[1],
         line: parseInt(match[2], 10),
-        message: match[3].trim(),
+        rule: ruleMatch ? ruleMatch[1] : undefined,
+        message: ruleMatch ? msg.replace(ruleMatch[0], '').trim() : msg,
       });
       continue;
     }
@@ -109,7 +114,7 @@ export async function checkLint(
         status: "pass",
         title: "Lint & Type Check",
         summary: `Lint check passed (${command})`,
-        details: { command },
+        details: { command, checked: [command] },
       };
     }
 
@@ -122,6 +127,12 @@ export async function checkLint(
       summary: `Lint check failed with ${errors.length} error(s) (${command})`,
       details: {
         command,
+        findings: errors.map(e => ({
+          file: e.file,
+          line: e.line,
+          rule: e.rule,
+          message: e.message,
+        })),
         errors,
         errorCount: errors.length,
         stdout: result.stdout.substring(0, 2000),

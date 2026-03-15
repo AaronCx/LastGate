@@ -141,9 +141,11 @@ export async function checkFilePatterns(
     details: {
       findings: findings.map((f) => ({
         file: f.file,
+        message: `Blocked file pattern: ${f.pattern}`,
         blockedBy: f.pattern,
       })),
       count: findings.length,
+      checked: actualBlocked.slice(0, 10),
     },
   };
 }

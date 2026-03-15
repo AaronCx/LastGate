@@ -211,9 +211,9 @@ export default function ReviewDetailPage() {
         ? { variant: "warning" as const, label: "Warning" }
         : { variant: "default" as const, label: checkRun.status };
 
-  // Map results to the shape AgentFeedback expects
-  const failedChecks = checkRun.results
-    .filter((r) => r.status === "fail" || r.status === "failed")
+  // Map results to the shape AgentFeedback expects (failed + warned)
+  const failedAndWarnedChecks = checkRun.results
+    .filter((r) => r.status === "fail" || r.status === "failed" || r.status === "warn" || r.status === "warning")
     .map((r) => ({
       name: r.title,
       status: normalizeStatus(r.status),
@@ -334,12 +334,10 @@ export default function ReviewDetailPage() {
           <ReviewActions runId={runId} />
 
           {/* Agent Feedback Preview */}
-          {checkRun.is_agent_commit && (
-            <AgentFeedback
-              agent={checkRun.commit_author || "Agent"}
-              failedChecks={failedChecks}
-            />
-          )}
+          <AgentFeedback
+            agent={checkRun.commit_author || "Agent"}
+            failedChecks={failedAndWarnedChecks}
+          />
         </div>
       </div>
     </div>

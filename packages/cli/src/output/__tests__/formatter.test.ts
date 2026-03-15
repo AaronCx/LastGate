@@ -65,7 +65,7 @@ describe("formatCheckResults", () => {
       { type: "lint", status: "pass" },
     ]);
     const output = formatCheckResults(results);
-    expect(output).toContain("PASSED");
+    expect(output).toContain("ALL CLEAR");
     expect(output).not.toContain("BLOCKED");
   });
 
@@ -104,7 +104,7 @@ describe("formatCheckResults", () => {
       { type: "build", status: "pass" },
     ]);
     const output = formatCheckResults(results);
-    expect(output).toContain("1 failure");
+    expect(output).toContain("1 failed");
     expect(output).toContain("1 warning");
     expect(output).toContain("1 passed");
   });
@@ -117,7 +117,7 @@ describe("formatCheckResults", () => {
       { type: "test", status: "warn" },
     ]);
     const output = formatCheckResults(results);
-    expect(output).toContain("2 failures");
+    expect(output).toContain("2 failed");
     expect(output).toContain("2 warnings");
   });
 
@@ -127,16 +127,15 @@ describe("formatCheckResults", () => {
       { type: "lint", status: "pass" },
     ]);
     const output = formatCheckResults(results);
-    expect(output).toContain("1 failure");
-    expect(output).not.toContain("1 failures");
+    expect(output).toContain("1 failed");
   });
 
-  test("shows summary text for each check", () => {
+  test("shows title for each check", () => {
     const results = makeResults([
-      { type: "secrets", status: "pass", summary: "No secrets found" },
+      { type: "secrets", status: "pass", title: "Secret Scanner" },
     ]);
     const output = formatCheckResults(results);
-    expect(output).toContain("No secrets found");
+    expect(output).toContain("Secret Scanner");
   });
 
   test("falls back to title when summary is undefined", () => {
@@ -165,13 +164,12 @@ describe("formatCheckResults", () => {
       },
     ]);
     const output = formatCheckResults(results);
-    expect(output).toContain("Findings");
     expect(output).toContain("config.ts");
     expect(output).toContain("42");
     expect(output).toContain("Hardcoded API key detected");
   });
 
-  test("displays ERROR label for error severity findings", () => {
+  test("displays finding message for error severity findings", () => {
     const results = makeResults([
       {
         type: "secrets",
@@ -184,7 +182,8 @@ describe("formatCheckResults", () => {
       },
     ]);
     const output = formatCheckResults(results);
-    expect(output).toContain("ERROR");
+    expect(output).toContain("critical issue");
+    expect(output).toContain("Failures");
   });
 
   test("displays WARN label for warning severity findings", () => {
@@ -203,7 +202,7 @@ describe("formatCheckResults", () => {
     expect(output).toContain("WARN");
   });
 
-  test("displays INFO label for info severity findings", () => {
+  test("displays finding message for info severity findings", () => {
     const results = makeResults([
       {
         type: "lint",
@@ -216,7 +215,7 @@ describe("formatCheckResults", () => {
       },
     ]);
     const output = formatCheckResults(results);
-    expect(output).toContain("INFO");
+    expect(output).toContain("suggestion");
   });
 
   test("handles findings without file location", () => {

@@ -46,7 +46,7 @@ export async function checkBuild(
         status: "pass",
         title: "Build Verifier",
         summary: `Build passed (${command})`,
-        details: { command, exitCode },
+        details: { command, exitCode, output: "Build completed successfully" },
       };
     }
 
@@ -65,6 +65,7 @@ export async function checkBuild(
         command,
         exitCode,
         errorLines,
+        output: (stdout + "\n" + stderr).trim().substring(0, 2000),
         stdout: stdout.substring(0, 2000),
         stderr: stderr.substring(0, 2000),
       },

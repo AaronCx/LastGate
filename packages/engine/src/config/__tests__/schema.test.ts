@@ -15,7 +15,7 @@ describe("Zod Schema Validation", () => {
         agent_patterns: { enabled: true, severity: "warn" },
       },
       protected_branches: ["main", "production"],
-      agent_feedback: { enabled: true, format: "structured" },
+      agent_feedback: { format: "structured" },
     };
     const result = validateConfig(data);
     expect(result.checks?.secrets?.enabled).toBe(true);
