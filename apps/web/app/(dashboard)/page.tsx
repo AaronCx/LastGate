@@ -1,3 +1,5 @@
+"use client";
+
 import OverviewCards from "@/components/dashboard/OverviewCards";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import RepoHealthGrid from "@/components/dashboard/RepoHealthGrid";
