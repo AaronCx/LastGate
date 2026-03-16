@@ -51,7 +51,7 @@ export default function AiSuggestion({
         <p className="text-sm text-lg-text-secondary">{explanation}</p>
 
         {fix && (
-          <pre className="p-3 bg-gray-900 text-gray-200 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+          <pre className="p-3 bg-lg-bg text-lg-text-secondary rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
             {fix}
           </pre>
         )}

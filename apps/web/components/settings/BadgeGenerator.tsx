@@ -33,7 +33,7 @@ export default function BadgeGenerator({ repoFullName }: BadgeGeneratorProps) {
           <button
             onClick={() => setStyle("simple")}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
-              style === "simple" ? "bg-gray-900 text-white" : "border border-lg-border text-lg-text-secondary"
+              style === "simple" ? "bg-lg-accent text-white" : "border border-lg-border text-lg-text-secondary"
             }`}
           >
             Simple
@@ -41,7 +41,7 @@ export default function BadgeGenerator({ repoFullName }: BadgeGeneratorProps) {
           <button
             onClick={() => setStyle("detailed")}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
-              style === "detailed" ? "bg-gray-900 text-white" : "border border-lg-border text-lg-text-secondary"
+              style === "detailed" ? "bg-lg-accent text-white" : "border border-lg-border text-lg-text-secondary"
             }`}
           >
             Detailed
@@ -56,7 +56,7 @@ export default function BadgeGenerator({ repoFullName }: BadgeGeneratorProps) {
 
         {/* Markdown */}
         <div className="relative">
-          <pre className="p-3 bg-gray-900 text-gray-200 rounded-lg text-xs overflow-x-auto">
+          <pre className="p-3 bg-lg-bg text-lg-text-secondary rounded-lg text-xs overflow-x-auto">
             {markdown}
           </pre>
           <button

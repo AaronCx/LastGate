@@ -88,7 +88,7 @@ export default function NotificationConfig({ repoId }: NotificationConfigProps) 
         </CardTitle>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-900 text-white hover:bg-gray-800"
+          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-lg-accent text-white hover:bg-lg-accent/80"
         >
           <Plus className="h-3.5 w-3.5" />
           Add Webhook

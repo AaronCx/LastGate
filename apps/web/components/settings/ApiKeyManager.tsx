@@ -116,7 +116,7 @@ export default function ApiKeyManager() {
               The recommended way to generate API keys is through the CLI device
               flow. Run the following command:
             </p>
-            <code className="block mt-2 text-xs font-mono bg-gray-900 text-gray-200 rounded px-3 py-2">
+            <code className="block mt-2 text-xs font-mono bg-lg-bg text-lg-text-secondary rounded px-3 py-2">
               lastgate login
             </code>
           </div>
