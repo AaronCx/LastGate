@@ -69,7 +69,7 @@ agent_feedback:
     // Should merge with defaults
     expect(config.checks.secrets?.enabled).toBe(true);
     expect(config.checks.lint?.enabled).toBe(true);
-    expect(config.checks.build?.enabled).toBe(true);
+    expect(config.checks.build?.enabled).toBe(false);
   });
 
   test("applies defaults for missing fields", () => {
@@ -82,7 +82,7 @@ checks:
     expect(config.checks.secrets?.enabled).toBe(false);
     // Other checks should get defaults
     expect(config.checks.lint?.enabled).toBe(true);
-    expect(config.checks.build?.enabled).toBe(true);
+    expect(config.checks.build?.enabled).toBe(false);
     expect(config.checks.duplicates?.lookback).toBe(10);
   });
 

@@ -17,7 +17,7 @@ export function getDefaultConfig(): PipelineConfig {
         severity: "fail",
       },
       build: {
-        enabled: true,
+        enabled: false,
         severity: "fail",
         timeout: 120,
       },
