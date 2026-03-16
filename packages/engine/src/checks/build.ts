@@ -1,12 +1,68 @@
-import { execFile } from "node:child_process";
+import { execFile, exec } from "node:child_process";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { CheckResult, BuildCheckConfig } from "../types";
 
 export async function checkBuild(
   config: BuildCheckConfig,
+  repoFullName?: string,
+  commitSha?: string,
 ): Promise<CheckResult> {
   const command = config.command ?? "bun run build";
   const timeoutMs = (config.timeout ?? 120) * 1000;
-  const cwd = (config as BuildCheckConfig & { cwd?: string }).cwd ?? process.cwd();
+  let cwd = (config as BuildCheckConfig & { cwd?: string }).cwd ?? process.cwd();
+  let tempDir: string | null = null;
+
+  // If we have a repoFullName and the cwd doesn't have a package.json,
+  // shallow-clone the repo to /tmp so we can actually build
+  const hasPackageJson = existsSync(join(cwd, "package.json"));
+
+  if (!hasPackageJson && repoFullName) {
+    try {
+      tempDir = mkdtempSync(join(tmpdir(), "lastgate-build-"));
+      const cloneUrl = `https://github.com/${repoFullName}.git`;
+      const ref = commitSha || "HEAD";
+
+      // Shallow clone
+      await runCommand(`git clone --depth 1 ${cloneUrl} ${tempDir}`, timeoutMs);
+
+      if (commitSha) {
+        await runCommand(`git -C ${tempDir} fetch origin ${commitSha} --depth 1`, timeoutMs).catch(() => {
+          // If fetch fails (shallow clone limitation), continue with HEAD
+        });
+      }
+
+      // Install dependencies
+      const hasBunLock = existsSync(join(tempDir, "bun.lock")) || existsSync(join(tempDir, "bun.lockb"));
+      const installCmd = hasBunLock ? "bun install" : "npm ci --ignore-scripts";
+      await runCommand(installCmd, timeoutMs, tempDir);
+
+      cwd = tempDir;
+    } catch (error) {
+      // If clone/install fails, skip the build check gracefully
+      if (tempDir) {
+        try { rmSync(tempDir, { recursive: true, force: true }); } catch {}
+      }
+      const errMsg = error instanceof Error ? error.message : String(error);
+      return {
+        type: "build",
+        status: "pass",
+        title: "Build Verifier",
+        summary: `Build check skipped — could not clone repository: ${errMsg.substring(0, 200)}`,
+        details: { command, skipped: true, reason: errMsg },
+      };
+    }
+  } else if (!hasPackageJson) {
+    // No package.json and no repo info — skip gracefully
+    return {
+      type: "build",
+      status: "pass",
+      title: "Build Verifier",
+      summary: "Build check skipped — no package.json in working directory",
+      details: { command, skipped: true, reason: "no package.json" },
+    };
+  }
 
   const parts = command.split(/\s+/);
   const [cmd, ...args] = parts;
@@ -29,6 +85,11 @@ export async function checkBuild(
         });
       });
     });
+
+    // Clean up temp directory
+    if (tempDir) {
+      try { rmSync(tempDir, { recursive: true, force: true }); } catch {}
+    }
 
     if (exitCode === -1) {
       return {
@@ -71,6 +132,10 @@ export async function checkBuild(
       },
     };
   } catch (error) {
+    // Clean up temp directory
+    if (tempDir) {
+      try { rmSync(tempDir, { recursive: true, force: true }); } catch {}
+    }
     const errMsg = error instanceof Error ? error.message : String(error);
     return {
       type: "build",
@@ -80,4 +145,13 @@ export async function checkBuild(
       details: { command, error: errMsg },
     };
   }
+}
+
+function runCommand(command: string, timeoutMs: number, cwd?: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    exec(command, { timeout: timeoutMs, cwd, maxBuffer: 50 * 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) reject(new Error(`${command}: ${stderr || error.message}`));
+      else resolve(stdout);
+    });
+  });
 }

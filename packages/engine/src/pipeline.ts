@@ -63,7 +63,7 @@ export async function runCheckPipeline(
     },
     {
       key: "build",
-      fn: () => checkBuild(config.checks.build!),
+      fn: () => checkBuild(config.checks.build!, input.repoFullName),
     },
     {
       key: "dependencies",

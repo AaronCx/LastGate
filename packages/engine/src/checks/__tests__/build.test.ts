@@ -1,13 +1,18 @@
 import { describe, test, expect } from "bun:test";
 import { checkBuild } from "../build";
-import type { BuildCheckConfig } from "../../types";
 import { mkdtempSync, writeFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
+function makeTmpWithPackageJson(): string {
+  const dir = mkdtempSync(join(tmpdir(), "build-test-"));
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { build: "echo built" } }));
+  return dir;
+}
+
 describe("Build Verifier", () => {
   test("passes when build command succeeds (exit 0)", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "build-test-"));
+    const tmpDir = makeTmpWithPackageJson();
     try {
       const config = { enabled: true, severity: "fail", command: "echo build-ok", cwd: tmpDir } as any;
       const result = await checkBuild(config);
@@ -20,7 +25,7 @@ describe("Build Verifier", () => {
   });
 
   test("fails when build command returns non-zero exit code", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "build-test-"));
+    const tmpDir = makeTmpWithPackageJson();
     try {
       const config = { enabled: true, severity: "fail", command: "false", cwd: tmpDir } as any;
       const result = await checkBuild(config);
@@ -32,9 +37,8 @@ describe("Build Verifier", () => {
   });
 
   test("fails when build exceeds timeout", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "build-test-"));
+    const tmpDir = makeTmpWithPackageJson();
     try {
-      // timeout of 1 second, sleep for 10
       const config = { enabled: true, severity: "fail", command: "sleep 10", timeout: 1, cwd: tmpDir } as any;
       const result = await checkBuild(config);
       expect(result.status).toBe("fail");
@@ -45,28 +49,23 @@ describe("Build Verifier", () => {
     }
   });
 
-  test("skips gracefully when command does not exist", async () => {
+  test("skips gracefully when no package.json and no repo", async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "build-test-"));
     try {
-      const config = { enabled: true, severity: "fail", command: "nonexistent_build_tool", cwd: tmpDir } as any;
+      const config = { enabled: true, severity: "fail", command: "echo ok", cwd: tmpDir } as any;
       const result = await checkBuild(config);
-      expect(result.status).toBe("fail");
-      expect(result.type).toBe("build");
+      expect(result.status).toBe("pass");
+      expect(result.summary).toContain("skipped");
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
   });
 
   test("defaults to 'bun run build' when no command specified", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "build-test-"));
+    const tmpDir = makeTmpWithPackageJson();
     try {
-      // Create a package.json with a build script that just echoes
-      writeFileSync(join(tmpDir, "package.json"), JSON.stringify({
-        scripts: { build: "echo built" }
-      }));
       const config = { enabled: true, severity: "fail", cwd: tmpDir } as any;
       const result = await checkBuild(config);
-      // Will try to run "bun run build" — might fail but shouldn't crash
       expect(result.type).toBe("build");
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
@@ -74,7 +73,7 @@ describe("Build Verifier", () => {
   });
 
   test("captures error output on failure", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "build-test-"));
+    const tmpDir = makeTmpWithPackageJson();
     try {
       writeFileSync(join(tmpDir, "fail.sh"), '#!/bin/bash\necho "Error: Module not found" >&2\nexit 1');
       const config = { enabled: true, severity: "fail", command: "bash fail.sh", cwd: tmpDir } as any;
