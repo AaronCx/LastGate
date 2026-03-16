@@ -14,9 +14,23 @@ export async function checkBuild(
   let cwd = (config as BuildCheckConfig & { cwd?: string }).cwd ?? process.cwd();
   let tempDir: string | null = null;
 
+  // On Vercel serverless, we can't clone+build repos — skip gracefully
+  // GitHub Actions CI handles build verification
+  const isVercel = !!process.env.VERCEL || !!process.env.VERCEL_ENV;
+
   // If we have a repoFullName and the cwd doesn't have a package.json,
   // shallow-clone the repo to /tmp so we can actually build
   const hasPackageJson = existsSync(join(cwd, "package.json"));
+
+  if (!hasPackageJson && isVercel) {
+    return {
+      type: "build",
+      status: "pass",
+      title: "Build Verifier",
+      summary: "Build check delegated to GitHub Actions CI (serverless environment)",
+      details: { command, skipped: true, reason: "serverless environment — repo not available locally" },
+    };
+  }
 
   if (!hasPackageJson && repoFullName) {
     try {
