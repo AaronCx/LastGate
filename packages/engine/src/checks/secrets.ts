@@ -76,22 +76,39 @@ export async function checkSecrets(
         }
       }
 
-      // Entropy-based detection
-      const tokens = extractTokens(line);
-      for (const token of tokens) {
-        const entropy = calculateEntropy(token);
-        if (entropy > 4.5) {
-          const alreadyFound = findings.some(
-            (f) => f.file === file.path && f.line === lineNum,
-          );
-          if (!alreadyFound) {
-            findings.push({
-              file: file.path,
-              line: lineNum,
-              pattern: "High Entropy String",
-              match: redact(token),
-              severity: "medium",
-            });
+      // Entropy-based detection — skip lines that are clearly code, not secrets
+      const trimmedLine = line.trim();
+      const isCodeLine =
+        trimmedLine.startsWith("import ") ||
+        trimmedLine.startsWith("import{") ||
+        trimmedLine.startsWith("export ") ||
+        trimmedLine.startsWith("from ") ||
+        trimmedLine.startsWith("require(") ||
+        trimmedLine.startsWith("//") ||
+        trimmedLine.startsWith("/*") ||
+        trimmedLine.startsWith("* ") ||
+        trimmedLine.startsWith("className=") ||
+        trimmedLine.startsWith("class=") ||
+        /^\s*\*/.test(trimmedLine) ||
+        /^[\s})\];,]*$/.test(trimmedLine);
+
+      if (!isCodeLine) {
+        const tokens = extractTokens(line);
+        for (const token of tokens) {
+          const entropy = calculateEntropy(token);
+          if (entropy > 4.5) {
+            const alreadyFound = findings.some(
+              (f) => f.file === file.path && f.line === lineNum,
+            );
+            if (!alreadyFound) {
+              findings.push({
+                file: file.path,
+                line: lineNum,
+                pattern: "High Entropy String",
+                match: redact(token),
+                severity: "medium",
+              });
+            }
           }
         }
       }
