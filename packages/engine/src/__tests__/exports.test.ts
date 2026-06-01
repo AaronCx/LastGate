@@ -17,13 +17,19 @@ describe("Engine public exports", () => {
     expect(typeof engine.parseAddedLines).toBe("function");
   });
 
+  test("statusFromFindings is exported as a function", () => {
+    expect(engine.statusFromFindings).toBeDefined();
+    expect(typeof engine.statusFromFindings).toBe("function");
+  });
+
   test("no unexpected runtime exports exist", () => {
-    // Runtime (non-type) exports: runCheckPipeline, parseConfig, parseAddedLines
+    // Runtime (non-type) exports: runCheckPipeline, parseConfig, parseAddedLines, statusFromFindings
     const runtimeKeys = Object.keys(engine);
     expect(runtimeKeys).toContain("runCheckPipeline");
     expect(runtimeKeys).toContain("parseConfig");
     expect(runtimeKeys).toContain("parseAddedLines");
-    expect(runtimeKeys.length).toBe(3);
+    expect(runtimeKeys).toContain("statusFromFindings");
+    expect(runtimeKeys.length).toBe(4);
   });
 });
 

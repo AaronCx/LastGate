@@ -1,6 +1,7 @@
 export { runCheckPipeline } from "./pipeline";
 export { parseConfig } from "./config/parser";
 export { parseAddedLines } from "./diff/parse";
+export { statusFromFindings } from "./checks/status";
 export type {
   CheckResult,
   CheckRunResults,

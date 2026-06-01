@@ -103,6 +103,10 @@ export interface PipelineConfig {
 export interface SecretCheckConfig {
   enabled: boolean;
   severity: "fail" | "warn";
+  /** Shannon entropy threshold for the entropy-only scanner. Default 4.8. */
+  entropy_threshold?: number;
+  /** Severity tier applied to entropy-only findings. Default "medium" — caps at warn. */
+  entropy_severity?: FindingSeverity;
   custom_patterns?: Array<{
     name: string;
     pattern: string;
