@@ -78,11 +78,28 @@ describe("Secret Scanner", () => {
     expect(result.status).toBe("fail");
   });
 
-  test("detects high entropy string (20+ chars)", async () => {
-    const files = [file("src/config.ts", 'const val = "aK3$mP9xL2qR7wN4vB8jcF5tY6u";')];
+  test("entropy-only finding caps at warn (medium severity) even with severity=fail", async () => {
+    // High-entropy random-looking token — flags entropy scanner but not any regex pattern.
+    const files = [file("src/config.ts", 'const val = "Zk3$mP9xQ2qR7wN4vBjc8F5tY6uHpI";')];
     const result = await checkSecrets(files, defaultConfig);
-    expect(result.status).toBe("fail");
+    // PR-2: medium-severity findings cap at warn even when severity=fail. The old behaviour
+    // hard-blocked on a single entropy guess.
+    expect(result.status).toBe("warn");
     expect((result.details.findings as any[]).some((f: any) => f.pattern === "High Entropy String")).toBe(true);
+  });
+
+  test("setting severity=warn downgrades even high-confidence regex matches to warn", async () => {
+    const warnConfig: SecretCheckConfig = { enabled: true, severity: "warn" };
+    const files = [file("src/config.ts", 'const key = "AKIAIOSFODNN7EXAMPLE";')];
+    const result = await checkSecrets(files, warnConfig);
+    expect(result.status).toBe("warn");
+  });
+
+  test("entropy_threshold config silences findings below the new threshold", async () => {
+    const looseConfig: SecretCheckConfig = { enabled: true, severity: "fail", entropy_threshold: 7.0 };
+    const files = [file("src/config.ts", 'const val = "aK3$mP9xL2qR7wN4vB8jcF5tY6u";')];
+    const result = await checkSecrets(files, looseConfig);
+    expect(result.status).toBe("pass");
   });
 
   // === Should PASS ===

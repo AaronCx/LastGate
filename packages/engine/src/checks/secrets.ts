@@ -1,7 +1,11 @@
-import type { AddedLine, ChangedFile, CheckResult, SecretCheckConfig } from "../types";
+import type { AddedLine, ChangedFile, CheckResult, FindingSeverity, SecretCheckConfig } from "../types";
 import { SECRET_PATTERNS } from "../scanners/regex-patterns";
 import { calculateEntropy, extractTokens } from "../scanners/entropy";
 import { parseAddedLines } from "../diff/parse";
+import { statusFromFindings } from "./status";
+
+const DEFAULT_ENTROPY_THRESHOLD = 4.8;
+const DEFAULT_ENTROPY_SEVERITY: FindingSeverity = "medium";
 
 const BINARY_EXTENSIONS = new Set([
   ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg", ".webp",
@@ -33,7 +37,7 @@ interface Finding {
   line: number;
   pattern: string;
   match: string;
-  severity: "critical" | "high" | "medium" | "low";
+  severity: FindingSeverity;
 }
 
 export async function checkSecrets(
@@ -96,10 +100,12 @@ export async function checkSecrets(
         /^[\s})\];,]*$/.test(trimmedLine);
 
       if (!isCodeLine) {
+        const entropyThreshold = config.entropy_threshold ?? DEFAULT_ENTROPY_THRESHOLD;
+        const entropySeverity = config.entropy_severity ?? DEFAULT_ENTROPY_SEVERITY;
         const tokens = extractTokens(line);
         for (const token of tokens) {
           const entropy = calculateEntropy(token);
-          if (entropy > 4.5) {
+          if (entropy > entropyThreshold) {
             const alreadyFound = findings.some(
               (f) => f.file === file.path && f.line === lineNum,
             );
@@ -109,7 +115,7 @@ export async function checkSecrets(
                 line: lineNum,
                 pattern: "High Entropy String",
                 match: redact(token),
-                severity: "medium",
+                severity: entropySeverity,
               });
             }
           }
@@ -118,13 +124,12 @@ export async function checkSecrets(
     }
   }
 
-  const hasCritical = findings.some((f) => f.severity === "critical");
-  const hasHigh = findings.some((f) => f.severity === "high");
-
-  return buildResult(findings, hasCritical, hasHigh);
+  return buildResult(findings, config);
 }
 
-function buildResult(findings: Finding[], hasCritical: boolean, hasHigh: boolean): CheckResult {
+function buildResult(findings: Finding[], config: SecretCheckConfig): CheckResult {
+  const hasCritical = findings.some((f) => f.severity === "critical");
+  const hasHigh = findings.some((f) => f.severity === "high");
 
   const summary = findings.length === 0
     ? "No secrets detected"
@@ -132,7 +137,7 @@ function buildResult(findings: Finding[], hasCritical: boolean, hasHigh: boolean
 
   return {
     type: "secrets",
-    status: findings.length > 0 ? "fail" : "pass",
+    status: statusFromFindings(findings, { severity: config.severity }),
     title: "Secret Scanner",
     summary,
     details: {
