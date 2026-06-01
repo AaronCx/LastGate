@@ -1,6 +1,7 @@
-import type { ChangedFile, CheckResult, SecretCheckConfig } from "../types";
+import type { AddedLine, ChangedFile, CheckResult, SecretCheckConfig } from "../types";
 import { SECRET_PATTERNS } from "../scanners/regex-patterns";
 import { calculateEntropy, extractTokens } from "../scanners/entropy";
+import { parseAddedLines } from "../diff/parse";
 
 const BINARY_EXTENSIONS = new Set([
   ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg", ".webp",
@@ -54,12 +55,14 @@ export async function checkSecrets(
     if (file.status === "removed") continue;
     if (isBinaryFile(file.path)) continue;
 
-    const content = file.patch ?? file.content ?? "";
-    const lines = content.split("\n");
+    // Scan only added lines, with REAL file line numbers. Never scan the patch as content —
+    // that would flag context, removed lines, and diff metadata (index/@@/+++).
+    const scanLines: AddedLine[] = file.addedLines
+      ?? (file.patch ? parseAddedLines(file.patch) : addedLinesFromFullContent(file.content));
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const lineNum = i + 1;
+    for (const { lineNo, text } of scanLines) {
+      const line = text;
+      const lineNum = lineNo;
 
       // Check against all regex patterns
       for (const sp of allPatterns) {
@@ -118,6 +121,11 @@ export async function checkSecrets(
   const hasCritical = findings.some((f) => f.severity === "critical");
   const hasHigh = findings.some((f) => f.severity === "high");
 
+  return buildResult(findings, hasCritical, hasHigh);
+}
+
+function buildResult(findings: Finding[], hasCritical: boolean, hasHigh: boolean): CheckResult {
+
   const summary = findings.length === 0
     ? "No secrets detected"
     : `Found ${findings.length} potential secret(s)${hasCritical ? " including CRITICAL" : hasHigh ? " including HIGH severity" : ""}`;
@@ -132,4 +140,9 @@ export async function checkSecrets(
       count: findings.length,
     },
   };
+}
+
+function addedLinesFromFullContent(content: string): AddedLine[] {
+  if (!content) return [];
+  return content.split("\n").map((text, i) => ({ lineNo: i + 1, text }));
 }

@@ -1,5 +1,6 @@
 export { runCheckPipeline } from "./pipeline";
 export { parseConfig } from "./config/parser";
+export { parseAddedLines } from "./diff/parse";
 export type {
   CheckResult,
   CheckRunResults,
@@ -9,5 +10,8 @@ export type {
   CheckStatus,
   CheckType,
   Annotation,
+  AddedLine,
+  Finding,
+  FindingSeverity,
 } from "./types";
 export type { PipelineInput } from "./pipeline";

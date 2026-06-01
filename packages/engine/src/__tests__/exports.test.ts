@@ -12,13 +12,18 @@ describe("Engine public exports", () => {
     expect(typeof engine.parseConfig).toBe("function");
   });
 
+  test("parseAddedLines is exported as a function", () => {
+    expect(engine.parseAddedLines).toBeDefined();
+    expect(typeof engine.parseAddedLines).toBe("function");
+  });
+
   test("no unexpected runtime exports exist", () => {
-    // Only runtime (non-type) exports should be runCheckPipeline and parseConfig
+    // Runtime (non-type) exports: runCheckPipeline, parseConfig, parseAddedLines
     const runtimeKeys = Object.keys(engine);
     expect(runtimeKeys).toContain("runCheckPipeline");
     expect(runtimeKeys).toContain("parseConfig");
-    // Types are erased at runtime, so only the two functions should be present
-    expect(runtimeKeys.length).toBe(2);
+    expect(runtimeKeys).toContain("parseAddedLines");
+    expect(runtimeKeys.length).toBe(3);
   });
 });
 

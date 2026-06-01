@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { runCheckPipeline } from "@lastgate/engine";
+import { parseAddedLines } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo } from "@lastgate/engine";
 import crypto from "crypto";
 
@@ -55,14 +56,22 @@ export async function POST(request: NextRequest) {
       .eq("full_name", repo)
       .single();
 
-    // Build changed files from CLI input
+    // Build changed files from CLI input. `content` is the real post-change file; `patch` is the
+    // raw unified diff. addedLines is derived from the patch so secrets/lint scan only added lines
+    // with real file line numbers.
     const files: ChangedFile[] = (rawFiles || []).map(
-      (f: Record<string, string>) => ({
-        path: f.path || f.filename,
-        content: f.content || f.patch || "",
-        patch: f.patch || "",
-        status: (f.status as ChangedFile["status"]) || "modified",
-      })
+      (f: Record<string, string>) => {
+        const patch = f.patch || "";
+        // CLI clients submitting only `content` set to the patch (legacy) get scanned via the
+        // patch path; the legacy fallback in checkSecrets handles content-only producers.
+        return {
+          path: f.path || f.filename,
+          content: f.content || "",
+          patch,
+          addedLines: patch ? parseAddedLines(patch) : undefined,
+          status: (f.status as ChangedFile["status"]) || "modified",
+        };
+      }
     );
 
     const commits: CommitInfo[] = [
