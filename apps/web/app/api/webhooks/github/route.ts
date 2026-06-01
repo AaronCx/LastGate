@@ -7,11 +7,42 @@ import { buildPRComment } from "@/lib/github/comments";
 import { postCommitComment, buildDirectPushWarning } from "@/lib/github/commit-comments";
 import { dispatchNotification } from "@/lib/github/notifications";
 import { configureBranchProtection } from "@/lib/github/branch-protection";
-import { parseAddedLines, runCheckPipeline } from "@lastgate/engine";
-import type { ChangedFile, CommitInfo } from "@lastgate/engine";
+import { parseAddedLines, parseConfig, runCheckPipeline } from "@lastgate/engine";
+import type { ChangedFile, CommitInfo, PipelineConfig } from "@lastgate/engine";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Allow up to 60s for pipeline processing
+
+/**
+ * Read `.lastgate.yml` from the repo at the given ref and return a parsed
+ * PipelineConfig. The webhook previously only read config from the dashboard
+ * database (`repos.config`), meaning every per-repo `.lastgate.yml` was
+ * silently ignored — including allow lists, severity overrides, and the
+ * baseline path. With this in place the in-repo YAML becomes the source of
+ * truth for the GitHub App check, matching the local-CLI behaviour after
+ * AaronCx/LastGate#9.
+ */
+async function fetchRepoYamlConfig(
+  octokit: Awaited<ReturnType<typeof getInstallationOctokit>>,
+  owner: string,
+  repo: string,
+  ref: string,
+): Promise<PipelineConfig | undefined> {
+  try {
+    const { data } = await octokit.request(
+      "GET /repos/{owner}/{repo}/contents/{path}",
+      { owner, repo, path: ".lastgate.yml", ref },
+    );
+    const blob = data as { content?: string; encoding?: string };
+    if (blob?.content && blob.encoding === "base64") {
+      const yaml = Buffer.from(blob.content, "base64").toString("utf8");
+      return parseConfig(yaml);
+    }
+  } catch {
+    // No .lastgate.yml in repo — engine defaults will apply.
+  }
+  return undefined;
+}
 
 async function fetchChangedFiles(
   octokit: Awaited<ReturnType<typeof getInstallationOctokit>>,
@@ -294,9 +325,12 @@ async function handleCheckEvent(
     },
   ];
 
-  // Fetch repo config if available
-  let repoConfig = {};
-  if (repoId) {
+  // Fetch repo config. The .lastgate.yml at the head ref is the source of
+  // truth; the dashboard DB row is the per-team default for repos that don't
+  // ship a YAML.
+  const repoYamlConfig = await fetchRepoYamlConfig(octokit, repoOwner, repoName, headSha);
+  let repoConfig: PipelineConfig | Record<string, unknown> | undefined = repoYamlConfig;
+  if (!repoYamlConfig && repoId) {
     const { data: repoData } = await supabase
       .from("repos")
       .select("config")
@@ -314,7 +348,7 @@ async function handleCheckEvent(
     commits,
     branch,
     repoFullName,
-    config: repoConfig,
+    config: repoConfig as PipelineConfig | undefined,
   });
   const duration = Math.round(performance.now() - startTime);
   console.log(`[webhook] Pipeline completed in ${duration}ms — ${pipelineResult.checks.length} checks, failures=${pipelineResult.failureCount}, warnings=${pipelineResult.warningCount}`);
