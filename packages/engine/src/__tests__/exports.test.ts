@@ -22,14 +22,35 @@ describe("Engine public exports", () => {
     expect(typeof engine.statusFromFindings).toBe("function");
   });
 
+  test("allowlist helpers are exported as functions", () => {
+    expect(typeof engine.isPathAllowed).toBe("function");
+    expect(typeof engine.isLineIgnored).toBe("function");
+    expect(typeof engine.fingerprint).toBe("function");
+    expect(typeof engine.loadBaseline).toBe("function");
+    expect(typeof engine.writeBaseline).toBe("function");
+    expect(typeof engine.DEFAULT_BASELINE_PATH).toBe("string");
+  });
+
   test("no unexpected runtime exports exist", () => {
-    // Runtime (non-type) exports: runCheckPipeline, parseConfig, parseAddedLines, statusFromFindings
+    // Runtime exports: runCheckPipeline, parseConfig, parseAddedLines, statusFromFindings,
+    // isPathAllowed, isLineIgnored, fingerprint, loadBaseline, writeBaseline, DEFAULT_BASELINE_PATH
     const runtimeKeys = Object.keys(engine);
-    expect(runtimeKeys).toContain("runCheckPipeline");
-    expect(runtimeKeys).toContain("parseConfig");
-    expect(runtimeKeys).toContain("parseAddedLines");
-    expect(runtimeKeys).toContain("statusFromFindings");
-    expect(runtimeKeys.length).toBe(4);
+    const expected = [
+      "runCheckPipeline",
+      "parseConfig",
+      "parseAddedLines",
+      "statusFromFindings",
+      "isPathAllowed",
+      "isLineIgnored",
+      "fingerprint",
+      "loadBaseline",
+      "writeBaseline",
+      "DEFAULT_BASELINE_PATH",
+    ];
+    for (const key of expected) {
+      expect(runtimeKeys).toContain(key);
+    }
+    expect(runtimeKeys.length).toBe(expected.length);
   });
 });
 

@@ -90,6 +90,10 @@ export interface PipelineConfig {
     commit_message?: CommitMessageCheckConfig;
     agent_patterns?: AgentPatternCheckConfig;
   };
+  /** Top-level path allowlist applied to every content-scanning check. */
+  allow?: string[];
+  /** Path to the baseline file holding accepted finding fingerprints. */
+  baseline?: string;
   protected_branches?: string[];
   notifications?: {
     slack_webhook?: string;
@@ -107,11 +111,24 @@ export interface SecretCheckConfig {
   entropy_threshold?: number;
   /** Severity tier applied to entropy-only findings. Default "medium" — caps at warn. */
   entropy_severity?: FindingSeverity;
+  /** Path globs to silence (in addition to the top-level `allow`). */
+  allow?: string[];
   custom_patterns?: Array<{
     name: string;
     pattern: string;
     severity?: "high" | "critical";
   }>;
+}
+
+/**
+ * Optional runtime context handed to checks alongside their config. Carries cross-cutting state
+ * (baseline fingerprints, merged allowlists) so checks don't have to re-load it themselves.
+ */
+export interface CheckContext {
+  /** Pre-loaded fingerprints from `.lastgate-baseline.json`. */
+  baseline?: Set<string>;
+  /** Merged path allowlist (top-level + check-specific). */
+  allow?: string[];
 }
 
 export interface DuplicateCheckConfig {
