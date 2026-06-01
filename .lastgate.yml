@@ -1,6 +1,27 @@
 # LastGate's own config — eating our own dogfood
 version: 1
 
+# Top-level path allowlist applied to every content-scanning check.
+# Test fixtures (synthetic example keys, tokens, entropy strings) and
+# lockfile integrity hashes are intentional and would otherwise trip the
+# secret scanner on every PR that touches a test file. PR-3 plumbed
+# `allow:` into the engine; PRs #9 + #10 wired the YAML through to the CLI.
+allow:
+  - "**/__tests__/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "tests/**"
+  - "docs/fp-investigation.md"
+  - "docs/fp-report.md"
+  - "package-lock.json"
+  - "**/package-lock.json"
+  - "bun.lock"
+  - "**/bun.lock"
+  - "yarn.lock"
+  - "**/yarn.lock"
+  - "pnpm-lock.yaml"
+  - "**/pnpm-lock.yaml"
+
 checks:
   secrets:
     enabled: true
