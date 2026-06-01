@@ -7,7 +7,7 @@ import { buildPRComment } from "@/lib/github/comments";
 import { postCommitComment, buildDirectPushWarning } from "@/lib/github/commit-comments";
 import { dispatchNotification } from "@/lib/github/notifications";
 import { configureBranchProtection } from "@/lib/github/branch-protection";
-import { runCheckPipeline } from "@lastgate/engine";
+import { parseAddedLines, runCheckPipeline } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo } from "@lastgate/engine";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +25,40 @@ async function fetchChangedFiles(
       { owner, repo, ref: sha }
     );
 
-    return (data.files || []).map((f: Record<string, unknown>) => ({
-      path: f.filename as string,
-      content: (f.patch as string) || "",
-      patch: (f.patch as string) || "",
-      status: mapGitHubStatus(f.status as string),
-    }));
+    return await Promise.all(
+      (data.files || []).map(async (f: Record<string, unknown>) => {
+        const patch = (f.patch as string) || "";
+        const path = f.filename as string;
+        const status = mapGitHubStatus(f.status as string);
+
+        // Real post-change content via the contents API. Fall back to "" on error
+        // (binary files, deletions, or large blobs) — the secrets check then derives
+        // added lines from the patch alone, which is still correct.
+        let content = "";
+        if (status !== "removed") {
+          try {
+            const blob = await octokit.request(
+              "GET /repos/{owner}/{repo}/contents/{path}",
+              { owner, repo, path, ref: sha }
+            );
+            const data = blob.data as { content?: string; encoding?: string };
+            if (data?.content && data.encoding === "base64") {
+              content = Buffer.from(data.content, "base64").toString("utf8");
+            }
+          } catch {
+            // best-effort — content stays empty, addedLines from patch carries scanning
+          }
+        }
+
+        return {
+          path,
+          content,
+          patch,
+          addedLines: patch ? parseAddedLines(patch) : undefined,
+          status,
+        };
+      })
+    );
   } catch (error) {
     console.error("Failed to fetch changed files:", error);
     return [];

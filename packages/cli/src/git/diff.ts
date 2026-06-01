@@ -1,4 +1,4 @@
-import type { ChangedFile } from "@lastgate/engine";
+import { parseAddedLines, type ChangedFile } from "@lastgate/engine";
 
 async function runGit(args: string[]): Promise<string> {
   const proc = Bun.spawn(["git", ...args], {
@@ -17,6 +17,14 @@ async function runGit(args: string[]): Promise<string> {
   return stdout;
 }
 
+async function tryRunGit(args: string[]): Promise<string | undefined> {
+  try {
+    return await runGit(args);
+  } catch {
+    return undefined;
+  }
+}
+
 function parseNameStatus(output: string): { status: string; path: string }[] {
   return output
     .trim()
@@ -28,52 +36,59 @@ function parseNameStatus(output: string): { status: string; path: string }[] {
     });
 }
 
-function parseDiffContent(
-  diffOutput: string,
-  nameStatusEntries: { status: string; path: string }[]
-): ChangedFile[] {
-  const fileMap = new Map<string, string>();
+function statusFromCode(code: string): ChangedFile["status"] {
+  switch (code[0]) {
+    case "A":
+      return "added";
+    case "D":
+      return "removed";
+    case "M":
+      return "modified";
+    case "R":
+      return "renamed";
+    default:
+      return "modified";
+  }
+}
 
-  // Split the diff into per-file chunks
-  const fileChunks = diffOutput.split(/^diff --git /m).filter((c) => c.length > 0);
-
-  for (const chunk of fileChunks) {
-    // Extract the file path from the diff header: a/path b/path
+function splitPatchByFile(diffOutput: string): Map<string, string> {
+  const map = new Map<string, string>();
+  const chunks = diffOutput.split(/^diff --git /m).filter((c) => c.length > 0);
+  for (const chunk of chunks) {
     const headerMatch = chunk.match(/^a\/(.+?) b\/(.+)/m);
     if (headerMatch) {
       const filePath = headerMatch[2];
-      fileMap.set(filePath, `diff --git ${chunk}`);
+      map.set(filePath, `diff --git ${chunk}`);
     }
   }
+  return map;
+}
 
-  return nameStatusEntries.map((entry) => {
-    let status: ChangedFile["status"];
-    switch (entry.status[0]) {
-      case "A":
-        status = "added";
-        break;
-      case "D":
-        status = "removed";
-        break;
-      case "M":
-        status = "modified";
-        break;
-      case "R":
-        status = "renamed";
-        break;
-      default:
-        status = "modified";
-    }
-
-    const patch = fileMap.get(entry.path) || "";
-
-    return {
+/**
+ * Build the ChangedFile list for a given diff. `readContent` resolves the real
+ * post-change file content for a path; `staged` controls which git refspec to
+ * pull body content from.
+ */
+async function buildChangedFiles(
+  nameStatusEntries: { status: string; path: string }[],
+  patches: Map<string, string>,
+  readContent: (path: string) => Promise<string>,
+): Promise<ChangedFile[]> {
+  const out: ChangedFile[] = [];
+  for (const entry of nameStatusEntries) {
+    const status = statusFromCode(entry.status);
+    const patch = patches.get(entry.path) ?? "";
+    const content = status === "removed" ? "" : await readContent(entry.path);
+    const addedLines = patch ? parseAddedLines(patch) : undefined;
+    out.push({
       path: entry.path,
       status,
-      content: patch,
+      content,
       patch,
-    };
-  });
+      addedLines,
+    });
+  }
+  return out;
 }
 
 export async function getStagedDiff(): Promise<ChangedFile[]> {
@@ -83,11 +98,20 @@ export async function getStagedDiff(): Promise<ChangedFile[]> {
   ]);
 
   const entries = parseNameStatus(nameStatusOutput);
-  if (entries.length === 0) {
-    return [];
-  }
+  if (entries.length === 0) return [];
 
-  return parseDiffContent(diffOutput, entries);
+  const patches = splitPatchByFile(diffOutput);
+  return buildChangedFiles(entries, patches, async (path) => {
+    // For staged content, prefer the staged blob (`git show :path`). Falls back to the
+    // working-tree file if the blob isn't readable (rare — e.g., partial stage on a new file).
+    const staged = await tryRunGit(["show", `:${path}`]);
+    if (staged !== undefined) return staged;
+    try {
+      return await Bun.file(path).text();
+    } catch {
+      return "";
+    }
+  });
 }
 
 export async function getBranchDiff(branch: string): Promise<ChangedFile[]> {
@@ -99,9 +123,11 @@ export async function getBranchDiff(branch: string): Promise<ChangedFile[]> {
   ]);
 
   const entries = parseNameStatus(nameStatusOutput);
-  if (entries.length === 0) {
-    return [];
-  }
+  if (entries.length === 0) return [];
 
-  return parseDiffContent(diffOutput, entries);
+  const patches = splitPatchByFile(diffOutput);
+  return buildChangedFiles(entries, patches, async (path) => {
+    const head = await tryRunGit(["show", `HEAD:${path}`]);
+    return head ?? "";
+  });
 }

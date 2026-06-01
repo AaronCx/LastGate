@@ -37,11 +37,39 @@ export interface Annotation {
   title: string;
 }
 
+export interface AddedLine {
+  lineNo: number;
+  text: string;
+}
+
 export interface ChangedFile {
   path: string;
+  /** Real post-change file content. Must NOT be set to the raw patch — that's the legacy bug. */
   content: string;
+  /** Raw unified-diff patch, kept for reference and for fallback addedLines derivation. */
   patch?: string;
+  /**
+   * Real new-file line numbers of added lines. Derive via parseAddedLines(patch) at the producer
+   * boundary (CLI / webhook). Optional for backward compat — checks fall back to deriving from
+   * `patch`, or as a last resort scanning `content` as fully-added (correct for status=added).
+   */
+  addedLines?: AddedLine[];
   status: "added" | "modified" | "removed" | "renamed";
+}
+
+export type FindingSeverity = "critical" | "high" | "medium" | "low";
+
+/**
+ * Canonical finding shape for content-scanning checks. Existing checks may keep their bespoke
+ * detail shapes for now; PR-2 will introduce statusFromFindings() that consumes this severity.
+ */
+export interface Finding {
+  file: string;
+  line: number;
+  rule: string;
+  message: string;
+  severity: FindingSeverity;
+  match?: string;
 }
 
 export interface CommitInfo {
