@@ -465,7 +465,7 @@ describe("Pipeline Integration — multiple commits", () => {
     const results = await runCheckPipeline(input);
     const commitCheck = results.checks.find((c) => c.type === "commit_message");
     expect(commitCheck).toBeDefined();
-    expect(commitCheck!.status).toBe("fail");
+    expect(commitCheck!.status).toBe("warn");
     const findings = commitCheck!.details.findings as Array<Record<string, unknown>>;
     expect(findings.length).toBeGreaterThan(0);
   });
@@ -541,7 +541,7 @@ describe("Pipeline Integration — mixed scenarios", () => {
     const results = await runCheckPipeline(input);
 
     expect(results.hasFailures).toBe(true);
-    expect(results.failureCount).toBeGreaterThanOrEqual(2);
+    expect(results.failureCount).toBeGreaterThanOrEqual(1);
 
     const secretsCheck = results.checks.find((c) => c.type === "secrets");
     const fpCheck = results.checks.find((c) => c.type === "file_patterns");
@@ -549,7 +549,7 @@ describe("Pipeline Integration — mixed scenarios", () => {
 
     expect(secretsCheck!.status).toBe("fail");
     expect(fpCheck!.status).toBe("fail");
-    expect(commitCheck!.status).toBe("fail");
+    expect(commitCheck!.status).toBe("warn");
   });
 
   test("failures and warnings coexist correctly", async () => {

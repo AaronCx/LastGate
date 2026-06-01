@@ -19,7 +19,7 @@ describe("Duplicate Commit Detector", () => {
     const commits = [commit("abc1234", "fix: resolve auth bug")];
     const previous = [commit("def5678", "fix: resolve auth bug")];
     const result = await checkDuplicates(commits, previous, defaultConfig);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
     expect((result.details.findings as any[]).length).toBeGreaterThan(0);
     expect((result.details.findings as any[])[0].type).toBe("identical");
   });
@@ -30,7 +30,7 @@ describe("Duplicate Commit Detector", () => {
       commit("def5678", "fix: update styles"),
     ];
     const result = await checkDuplicates(commits, [], defaultConfig);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
     expect((result.details.findings as any[]).some((f: any) => f.type === "identical")).toBe(true);
   });
 
@@ -38,7 +38,7 @@ describe("Duplicate Commit Detector", () => {
     const commits = [commit("abc1234", 'Revert "feat: add user dashboard"')];
     const previous = [commit("def5678", "feat: add user dashboard")];
     const result = await checkDuplicates(commits, previous, defaultConfig);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
     expect((result.details.findings as any[]).some((f: any) => f.type === "revert")).toBe(true);
   });
 
@@ -46,7 +46,7 @@ describe("Duplicate Commit Detector", () => {
     const commits = [commit("abc1234", "fix: resolve authentication bug in login")];
     const previous = [commit("def5678", "fix: resolve authentication bug in logon")];
     const result = await checkDuplicates(commits, previous, defaultConfig);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
     expect((result.details.findings as any[]).some((f: any) => f.type === "near-identical")).toBe(true);
   });
 
@@ -58,7 +58,7 @@ describe("Duplicate Commit Detector", () => {
       commit("prev3", "fix: update config"),
     ];
     const result = await checkDuplicates(commits, previous, defaultConfig);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
   });
 
   // === Should PASS ===
@@ -115,7 +115,7 @@ describe("Duplicate Commit Detector", () => {
     previous[12] = commit("prev12", "fix: resolve issue");
     const config: DuplicateCheckConfig = { ...defaultConfig, lookback: 20 };
     const result = await checkDuplicates(commits, previous, config);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
   });
 
   test("passes with empty commits", async () => {

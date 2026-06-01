@@ -1,4 +1,5 @@
 import type { CommitInfo, CheckResult, CommitMessageCheckConfig } from "../types";
+import { statusFromFindings } from "./status";
 
 const CONVENTIONAL_COMMIT_PATTERN =
   /^(feat|fix|chore|docs|style|refactor|perf|test|ci|build|revert)(\(.+\))?!?:\s.+/;
@@ -89,7 +90,12 @@ export async function checkCommitMessage(
 
   return {
     type: "commit_message",
-    status: findings.length > 0 ? "fail" : "pass",
+    // Honour the configured severity. Findings carry their own severity already
+    // ("high"/"medium"/"low"); statusFromFindings derives the check status:
+    //   - high finding + severity=fail → fail
+    //   - high finding + severity=warn → warn (the user opted out)
+    //   - medium/low only → capped at warn regardless of severity
+    status: statusFromFindings(findings, { severity: config.severity }),
     title: "Commit Message Validator",
     summary: findings.length === 0
       ? "All commit messages look good"
