@@ -2,8 +2,8 @@ import { Command } from "commander";
 import ora from "ora";
 import { readFile } from "fs/promises";
 import { resolve } from "path";
-import { runCheckPipeline } from "@lastgate/engine";
-import type { PipelineInput, CommitInfo } from "@lastgate/engine";
+import { parseConfig, runCheckPipeline } from "@lastgate/engine";
+import type { CommitInfo, PipelineConfig, PipelineInput } from "@lastgate/engine";
 import { getStagedDiff, getBranchDiff } from "../git/diff";
 import { getCurrentCommitInfo } from "../git/commits";
 import { formatCheckResults, formatResultsJson } from "../output/formatter";
@@ -21,14 +21,26 @@ interface CheckOptions {
   interactive?: boolean;
 }
 
-async function loadConfig(): Promise<Record<string, unknown> | undefined> {
+/**
+ * Read `.lastgate.yml` from the current working directory and return a typed
+ * PipelineConfig. Calls the engine's parseConfig so per-check severity,
+ * entropy thresholds, the allowlist, baseline path, etc. all reach the
+ * pipeline. Missing file → undefined (engine defaults take over).
+ *
+ * Before this fix the CLI returned `{ raw, path }` text blob, which the
+ * pipeline's shallow merge silently ignored — every user-set config field
+ * was dead-on-arrival. See docs/fp-investigation.md (Finding F1).
+ */
+export async function loadConfig(): Promise<PipelineConfig | undefined> {
   const configPath = resolve(process.cwd(), ".lastgate.yml");
   try {
     const content = await readFile(configPath, "utf-8");
-    // Basic YAML parsing — the engine handles full parsing
-    return { raw: content, path: configPath };
-  } catch {
-    return undefined;
+    return parseConfig(content);
+  } catch (err) {
+    // ENOENT is the no-config-file path; rethrow anything else so misconfigured
+    // YAML doesn't get swallowed and silently fall back to defaults.
+    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") return undefined;
+    throw err;
   }
 }
 
@@ -108,13 +120,13 @@ async function runCheck(options: CheckOptions): Promise<void> {
       // no remote — use default
     }
 
-    // Build pipeline input
+    // Build pipeline input — config is now a typed PipelineConfig (or undefined).
     const input: PipelineInput = {
       files: changedFiles,
       commits,
       branch,
       repoFullName,
-      config: config as any,
+      config,
     };
 
     // Apply --only filter: disable all checks except the specified ones
