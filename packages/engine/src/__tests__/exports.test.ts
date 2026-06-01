@@ -37,6 +37,8 @@ describe("Engine public exports", () => {
     const runtimeKeys = Object.keys(engine);
     const expected = [
       "runCheckPipeline",
+      "runChecksIterable",
+      "runSingleCheck",
       "parseConfig",
       "parseAddedLines",
       "statusFromFindings",

@@ -61,93 +61,105 @@ function checkRunsInProfile(
   return effective === "fast";
 }
 
+interface CheckEntry {
+  key: keyof PipelineConfig["checks"];
+  fn: () => Promise<CheckResult>;
+}
+
+/**
+ * Set up the cheap → expensive list of enabled-and-in-profile checks plus a runner that times +
+ * crash-traps each call. Returns the entries the iterable and the batch runner share.
+ */
+async function buildCheckEntries(
+  input: PipelineInput,
+  opts: PipelineOptions,
+): Promise<{
+  entries: CheckEntry[];
+  runEntry: (entry: CheckEntry) => Promise<CheckResult>;
+}> {
+  const runProfile: CheckProfile = opts.profile ?? "fast";
+  const config = { ...getDefaultConfig(), ...input.config };
+
+  const baselinePath = config.baseline ?? DEFAULT_BASELINE_PATH;
+  const baseline = await loadBaseline(baselinePath);
+  const sharedContext: CheckContext = { baseline, allow: config.allow };
+
+  const all: CheckEntry[] = [
+    { key: "secrets", fn: () => checkSecrets(input.files, config.checks.secrets!, sharedContext) },
+    { key: "file_patterns", fn: () => checkFilePatterns(input.files, config.checks.file_patterns!) },
+    { key: "commit_message", fn: () => checkCommitMessage(input.commits, config.checks.commit_message!) },
+    { key: "agent_patterns", fn: () => checkAgentPatterns(input.commits, input.files, input.previousCommits || [], config.checks.agent_patterns!) },
+    { key: "duplicates", fn: () => checkDuplicates(input.commits, input.previousCommits || [], config.checks.duplicates!) },
+    { key: "lint", fn: () => checkLint(input.files, config.checks.lint!) },
+    { key: "dependencies", fn: () => checkDependencies(input.files, config.checks.dependencies!) },
+    { key: "build", fn: () => checkBuild(config.checks.build!, input.repoFullName) },
+  ];
+
+  const entries = all.filter((entry) => {
+    const checkConfig = config.checks[entry.key];
+    if (!checkConfig || !checkConfig.enabled) return false;
+    return checkRunsInProfile(entry.key, checkConfig.profile, runProfile);
+  });
+
+  const runEntry = async (entry: CheckEntry): Promise<CheckResult> => {
+    const start = performance.now();
+    try {
+      const result = await entry.fn();
+      result.duration_ms = Math.round(performance.now() - start);
+      return result;
+    } catch (error) {
+      return {
+        type: entry.key as CheckResult["type"],
+        status: "fail",
+        title: `Check "${entry.key}" crashed`,
+        summary: error instanceof Error ? error.message : String(error),
+        details: { error: String(error) },
+        duration_ms: Math.round(performance.now() - start),
+      };
+    }
+  };
+
+  return { entries, runEntry };
+}
+
+/**
+ * Stream check results one at a time, in cheap → expensive order. Used by `lastgate step`.
+ * Consumers can pause after each yielded result (e.g. to prompt the user) before the next check fires.
+ */
+export async function* runChecksIterable(
+  input: PipelineInput,
+  opts: PipelineOptions = {},
+): AsyncGenerator<CheckResult> {
+  const { entries, runEntry } = await buildCheckEntries(input, opts);
+  for (const entry of entries) {
+    yield await runEntry(entry);
+  }
+}
+
+/**
+ * Re-run a single check by key against current state. Used by the stepper to re-check after
+ * a fix has been applied or a baseline entry added.
+ */
+export async function runSingleCheck(
+  input: PipelineInput,
+  opts: PipelineOptions,
+  key: keyof PipelineConfig["checks"],
+): Promise<CheckResult | undefined> {
+  const { entries, runEntry } = await buildCheckEntries(input, opts);
+  const entry = entries.find((e) => e.key === key);
+  if (!entry) return undefined;
+  return runEntry(entry);
+}
+
 export async function runCheckPipeline(
   input: PipelineInput,
   opts: PipelineOptions = {},
 ): Promise<CheckRunResults> {
   const runProfile: CheckProfile = opts.profile ?? "fast";
-  const config = { ...getDefaultConfig(), ...input.config };
+  void runProfile;
   const results: CheckResult[] = [];
-
-  // PR-3: load baseline fingerprints once and pass to every content-scanning check.
-  const baselinePath = config.baseline ?? DEFAULT_BASELINE_PATH;
-  const baseline = await loadBaseline(baselinePath);
-  const sharedContext: CheckContext = {
-    baseline,
-    allow: config.allow,
-  };
-
-  // PR-4: order checks cheap → expensive so the early ones surface fast in a stepper loop later.
-  const checks: Array<{
-    key: keyof PipelineConfig["checks"];
-    fn: () => Promise<CheckResult>;
-  }> = [
-    {
-      key: "secrets",
-      fn: () => checkSecrets(input.files, config.checks.secrets!, sharedContext),
-    },
-    {
-      key: "file_patterns",
-      fn: () => checkFilePatterns(input.files, config.checks.file_patterns!),
-    },
-    {
-      key: "commit_message",
-      fn: () =>
-        checkCommitMessage(input.commits, config.checks.commit_message!),
-    },
-    {
-      key: "agent_patterns",
-      fn: () =>
-        checkAgentPatterns(
-          input.commits,
-          input.files,
-          input.previousCommits || [],
-          config.checks.agent_patterns!
-        ),
-    },
-    {
-      key: "duplicates",
-      fn: () =>
-        checkDuplicates(
-          input.commits,
-          input.previousCommits || [],
-          config.checks.duplicates!
-        ),
-    },
-    {
-      key: "lint",
-      fn: () => checkLint(input.files, config.checks.lint!),
-    },
-    {
-      key: "dependencies",
-      fn: () => checkDependencies(input.files, config.checks.dependencies!),
-    },
-    {
-      key: "build",
-      fn: () => checkBuild(config.checks.build!, input.repoFullName),
-    },
-  ];
-
-  for (const check of checks) {
-    const checkConfig = config.checks[check.key];
-    if (!checkConfig || !checkConfig.enabled) continue;
-    if (!checkRunsInProfile(check.key, checkConfig.profile, runProfile)) continue;
-
-    const start = performance.now();
-    try {
-      const result = await check.fn();
-      result.duration_ms = Math.round(performance.now() - start);
-      results.push(result);
-    } catch (error) {
-      results.push({
-        type: check.key as CheckResult["type"],
-        status: "fail",
-        title: `Check "${check.key}" crashed`,
-        summary: error instanceof Error ? error.message : String(error),
-        details: { error: String(error) },
-        duration_ms: Math.round(performance.now() - start),
-      });
-    }
+  for await (const r of runChecksIterable(input, opts)) {
+    results.push(r);
   }
 
   const failures = results.filter((r) => r.status === "fail");

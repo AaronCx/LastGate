@@ -4,6 +4,7 @@ import { registerInitCommand } from "./commands/init";
 import { registerLoginCommand } from "./commands/login";
 import { registerHistoryCommand } from "./commands/history";
 import { registerBaselineCommand } from "./commands/baseline";
+import { registerStepCommand } from "./commands/step";
 
 const program = new Command();
 
@@ -17,5 +18,6 @@ registerInitCommand(program);
 registerLoginCommand(program);
 registerHistoryCommand(program);
 registerBaselineCommand(program);
+registerStepCommand(program);
 
 export { program };
