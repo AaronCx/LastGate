@@ -60,6 +60,13 @@ export interface ChangedFile {
 export type FindingSeverity = "critical" | "high" | "medium" | "low";
 
 /**
+ * Run profile selector.
+ *  - `fast` — pre-commit / interactive loop. Skips heavy operations like full builds.
+ *  - `full` — pre-push / CI. Runs everything including the build verifier.
+ */
+export type CheckProfile = "fast" | "full";
+
+/**
  * Canonical finding shape for content-scanning checks. Existing checks may keep their bespoke
  * detail shapes for now; PR-2 will introduce statusFromFindings() that consumes this severity.
  */
@@ -113,6 +120,8 @@ export interface SecretCheckConfig {
   entropy_severity?: FindingSeverity;
   /** Path globs to silence (in addition to the top-level `allow`). */
   allow?: string[];
+  /** Override which run profile this check participates in. Default: "fast". */
+  profile?: CheckProfile;
   custom_patterns?: Array<{
     name: string;
     pattern: string;
@@ -135,12 +144,14 @@ export interface DuplicateCheckConfig {
   enabled: boolean;
   severity: "fail" | "warn";
   lookback: number;
+  profile?: CheckProfile;
 }
 
 export interface LintCheckConfig {
   enabled: boolean;
   severity: "fail" | "warn";
   command?: string;
+  profile?: CheckProfile;
 }
 
 export interface BuildCheckConfig {
@@ -148,12 +159,15 @@ export interface BuildCheckConfig {
   severity: "fail" | "warn";
   command?: string;
   timeout?: number;
+  /** Default profile is "full" — only runs in the pre-push / CI loop. */
+  profile?: CheckProfile;
 }
 
 export interface DependencyCheckConfig {
   enabled: boolean;
   severity: "fail" | "warn";
   fail_on?: "critical" | "high" | "moderate" | "low";
+  profile?: CheckProfile;
 }
 
 export interface FilePatternCheckConfig {
@@ -161,15 +175,18 @@ export interface FilePatternCheckConfig {
   severity: "fail" | "warn";
   block?: string[];
   allow?: string[];
+  profile?: CheckProfile;
 }
 
 export interface CommitMessageCheckConfig {
   enabled: boolean;
   severity: "fail" | "warn";
   require_conventional: boolean;
+  profile?: CheckProfile;
 }
 
 export interface AgentPatternCheckConfig {
   enabled: boolean;
   severity: "fail" | "warn";
+  profile?: CheckProfile;
 }

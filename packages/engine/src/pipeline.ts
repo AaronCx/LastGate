@@ -1,5 +1,6 @@
 import type {
   CheckContext,
+  CheckProfile,
   CheckResult,
   CheckRunResults,
   ChangedFile,
@@ -27,9 +28,44 @@ export interface PipelineInput {
   previousCommits?: CommitInfo[];
 }
 
+export interface PipelineOptions {
+  /**
+   * Run profile.
+   *  - "fast" (default) — pre-commit / interactive loop. Skips checks whose default or
+   *    configured profile is "full" (the build verifier).
+   *  - "full" — pre-push / CI. Runs every enabled check.
+   */
+  profile?: CheckProfile;
+}
+
+/** Default profile per check key. `build` is `full` only; everything else runs in `fast`. */
+const DEFAULT_PROFILE_BY_CHECK: Record<keyof PipelineConfig["checks"], CheckProfile> = {
+  secrets: "fast",
+  file_patterns: "fast",
+  commit_message: "fast",
+  duplicates: "fast",
+  lint: "fast",
+  build: "full",
+  dependencies: "fast",
+  agent_patterns: "fast",
+};
+
+function checkRunsInProfile(
+  checkKey: keyof PipelineConfig["checks"],
+  configProfile: CheckProfile | undefined,
+  runProfile: CheckProfile,
+): boolean {
+  const effective: CheckProfile = configProfile ?? DEFAULT_PROFILE_BY_CHECK[checkKey];
+  // A "fast" check always runs in "full". A "full" check only runs in "full".
+  if (runProfile === "full") return true;
+  return effective === "fast";
+}
+
 export async function runCheckPipeline(
-  input: PipelineInput
+  input: PipelineInput,
+  opts: PipelineOptions = {},
 ): Promise<CheckRunResults> {
+  const runProfile: CheckProfile = opts.profile ?? "fast";
   const config = { ...getDefaultConfig(), ...input.config };
   const results: CheckResult[] = [];
 
@@ -41,6 +77,7 @@ export async function runCheckPipeline(
     allow: config.allow,
   };
 
+  // PR-4: order checks cheap → expensive so the early ones surface fast in a stepper loop later.
   const checks: Array<{
     key: keyof PipelineConfig["checks"];
     fn: () => Promise<CheckResult>;
@@ -59,6 +96,16 @@ export async function runCheckPipeline(
         checkCommitMessage(input.commits, config.checks.commit_message!),
     },
     {
+      key: "agent_patterns",
+      fn: () =>
+        checkAgentPatterns(
+          input.commits,
+          input.files,
+          input.previousCommits || [],
+          config.checks.agent_patterns!
+        ),
+    },
+    {
       key: "duplicates",
       fn: () =>
         checkDuplicates(
@@ -72,28 +119,19 @@ export async function runCheckPipeline(
       fn: () => checkLint(input.files, config.checks.lint!),
     },
     {
-      key: "build",
-      fn: () => checkBuild(config.checks.build!, input.repoFullName),
-    },
-    {
       key: "dependencies",
       fn: () => checkDependencies(input.files, config.checks.dependencies!),
     },
     {
-      key: "agent_patterns",
-      fn: () =>
-        checkAgentPatterns(
-          input.commits,
-          input.files,
-          input.previousCommits || [],
-          config.checks.agent_patterns!
-        ),
+      key: "build",
+      fn: () => checkBuild(config.checks.build!, input.repoFullName),
     },
   ];
 
   for (const check of checks) {
     const checkConfig = config.checks[check.key];
     if (!checkConfig || !checkConfig.enabled) continue;
+    if (!checkRunsInProfile(check.key, checkConfig.profile, runProfile)) continue;
 
     const start = performance.now();
     try {
