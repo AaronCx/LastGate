@@ -15,6 +15,10 @@ interface CheckOptions {
   json?: boolean;
   verbose?: boolean;
   force?: boolean;
+  staged?: boolean;
+  profile?: string;
+  fix?: boolean;
+  interactive?: boolean;
 }
 
 async function loadConfig(): Promise<Record<string, unknown> | undefined> {
@@ -42,6 +46,14 @@ async function runCheck(options: CheckOptions): Promise<void> {
   if (!(await isGitRepo())) {
     console.error(error("\n✖ Not a git repository.\n  Run this command from inside a git repo, or run `git init` first.\n"));
     process.exit(1);
+  }
+
+  // PR-6: --interactive delegates to the stepper for the same set of changes.
+  if (options.interactive) {
+    const { runStepper } = await import("./step");
+    const profile: "fast" | "full" = options.profile === "full" ? "full" : "fast";
+    const state = await runStepper({ branch: options.branch, profile });
+    process.exit(state.exitCode);
   }
 
   const spinner = ora("Gathering changes...").start();
@@ -127,8 +139,11 @@ async function runCheck(options: CheckOptions): Promise<void> {
       }
     }
 
+    // PR-6: --profile picks fast (default) or full.
+    const profile: "fast" | "full" = options.profile === "full" ? "full" : "fast";
+
     // Run the pipeline
-    const results = await runCheckPipeline(input);
+    const results = await runCheckPipeline(input, { profile });
 
     spinner.stop();
 
@@ -139,7 +154,10 @@ async function runCheck(options: CheckOptions): Promise<void> {
       console.log(formatCheckResults(results));
     }
 
-    // Exit with code 1 if any failures (unless --force)
+    // PR-6: severity-aware exit codes.
+    //   0 — pass, or warnings-only, or --force
+    //   1 — at least one unresolved fail-status check
+    //   2 — internal error (handled by the catch block)
     const hasFailures = results.checks.some((c) => c.status === "fail");
     if (hasFailures && !options.force) {
       process.exit(1);
@@ -159,7 +177,11 @@ export function registerCheckCommand(program: Command): void {
     .command("check")
     .description("Run pre-flight checks on staged changes")
     .option("--only <checks>", "Comma-separated list of check names to run")
+    .option("--staged", "Use staged changes (default — same as no --branch)")
     .option("--branch <branch>", "Compare against a target branch instead of staged changes")
+    .option("--profile <profile>", "Run profile: fast (default, skips build) or full (everything)", "fast")
+    .option("--fix", "Run autofixers before reporting (planned — currently a no-op pass-through)")
+    .option("--interactive", "Pause at the first failing step. Same as `lastgate step`.")
     .option("--json", "Output results as JSON")
     .option("--verbose", "Show detailed output")
     .option("--force", "Report failures but exit 0 (non-blocking)")
