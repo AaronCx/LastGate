@@ -212,4 +212,47 @@ describe("Pipeline Runner", () => {
     expect(results.summary).toContain("passed");
     expect(results.summary).toContain("LastGate");
   });
+
+  describe("PR-4 profile filtering", () => {
+    function profileInput(): PipelineInput {
+      return makeInput({
+        files: [{ path: "src/index.ts", content: "const x = 1;", status: "added" }],
+        config: {
+          checks: {
+            secrets: { enabled: true, severity: "fail" },
+            file_patterns: { enabled: false, severity: "fail" },
+            commit_message: { enabled: false, severity: "warn", require_conventional: true },
+            duplicates: { enabled: false, severity: "warn", lookback: 10 },
+            agent_patterns: { enabled: false, severity: "warn" },
+            lint: { enabled: false, severity: "fail" },
+            dependencies: { enabled: false, severity: "warn" },
+            // Build is enabled but defaults to profile "full".
+            build: { enabled: true, severity: "fail", command: "true" },
+          },
+        },
+      });
+    }
+
+    test("fast profile (default) skips the build check", async () => {
+      const results = await runCheckPipeline(profileInput());
+      const types = results.checks.map((c) => c.type);
+      expect(types).not.toContain("build");
+      expect(types).toContain("secrets");
+    });
+
+    test("full profile runs the build check", async () => {
+      const results = await runCheckPipeline(profileInput(), { profile: "full" });
+      const types = results.checks.map((c) => c.type);
+      expect(types).toContain("build");
+    });
+
+    test("per-check profile override moves a check into the full profile", async () => {
+      const input = profileInput();
+      const cfg = input.config?.checks?.secrets;
+      if (cfg) cfg.profile = "full";
+      const results = await runCheckPipeline(input);
+      const types = results.checks.map((c) => c.type);
+      expect(types).not.toContain("secrets"); // secrets is now full-only, won't run in fast
+    });
+  });
 });

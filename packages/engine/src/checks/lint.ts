@@ -3,6 +3,18 @@ import type { ChangedFile, CheckResult, LintCheckConfig } from "../types";
 import { existsSync } from "fs";
 import { join } from "path";
 
+const LINTABLE_EXTENSIONS = new Set([
+  ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
+  ".py",
+  ".vue", ".svelte",
+]);
+
+function isLintable(path: string): boolean {
+  const dot = path.lastIndexOf(".");
+  if (dot === -1) return false;
+  return LINTABLE_EXTENSIONS.has(path.slice(dot).toLowerCase());
+}
+
 async function runCommand(command: string, cwd?: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const parts = command.split(/\s+/);
   const [cmd, ...args] = parts;
@@ -21,11 +33,12 @@ async function runCommand(command: string, cwd?: string): Promise<{ stdout: stri
   });
 }
 
-function detectLinter(cwd: string): string | null {
-  if (existsSync(join(cwd, "biome.json")) || existsSync(join(cwd, "biome.jsonc"))) {
-    return "bunx biome check .";
-  }
+type LinterKind = "biome" | "eslint" | "ruff";
 
+function detectLinter(cwd: string): { kind: LinterKind; commandPrefix: string } | null {
+  if (existsSync(join(cwd, "biome.json")) || existsSync(join(cwd, "biome.jsonc"))) {
+    return { kind: "biome", commandPrefix: "bunx biome check" };
+  }
   const eslintConfigs = [
     ".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json",
     ".eslintrc.yml", ".eslintrc.yaml",
@@ -33,14 +46,12 @@ function detectLinter(cwd: string): string | null {
   ];
   for (const config of eslintConfigs) {
     if (existsSync(join(cwd, config))) {
-      return "bunx eslint .";
+      return { kind: "eslint", commandPrefix: "bunx eslint" };
     }
   }
-
   if (existsSync(join(cwd, "pyproject.toml"))) {
-    return "ruff check .";
+    return { kind: "ruff", commandPrefix: "ruff check" };
   }
-
   return null;
 }
 
@@ -87,7 +98,25 @@ export async function checkLint(
   config: LintCheckConfig,
 ): Promise<CheckResult> {
   const cwd = (config as LintCheckConfig & { cwd?: string }).cwd ?? process.cwd();
+
+  // PR-4: scope the linter to changed lintable files only — don't run against the whole repo.
+  const lintableFiles = files
+    .filter((f) => f.status !== "removed")
+    .map((f) => f.path)
+    .filter(isLintable);
+
+  if (lintableFiles.length === 0) {
+    return {
+      type: "lint",
+      status: "pass",
+      title: "Lint & Type Check",
+      summary: "No lintable changed files",
+      details: { skipped: true, reason: "no lintable files in diff" },
+    };
+  }
+
   let command: string;
+  let kind: LinterKind | null = null;
 
   if (config.command) {
     command = config.command;
@@ -102,7 +131,8 @@ export async function checkLint(
         details: { skipped: true },
       };
     }
-    command = detected;
+    command = `${detected.commandPrefix} ${lintableFiles.join(" ")}`;
+    kind = detected.kind;
   }
 
   try {
@@ -113,28 +143,63 @@ export async function checkLint(
         type: "lint",
         status: "pass",
         title: "Lint & Type Check",
-        summary: `Lint check passed (${command})`,
-        details: { command, checked: [command] },
+        summary: `Lint check passed (${kind ?? "custom"}, ${lintableFiles.length} file(s))`,
+        details: { command, checked: lintableFiles },
       };
     }
 
     const errors = parseOutput(result.stdout, result.stderr);
+    // PR-4: filter findings to lines present in addedLines for each file. A change that doesn't
+    // touch a file with pre-existing lint errors must not fail lint.
+    const filtered = filterToAddedLines(errors, files);
+
+    // If the linter exited non-zero with no parseable output, treat it as a command-level failure
+    // (binary missing, config invalid, etc.) rather than swallowing the signal.
+    if (errors.length === 0) {
+      return {
+        type: "lint",
+        status: "fail",
+        title: "Lint & Type Check",
+        summary: `Lint command failed (exit ${result.exitCode}) with no parseable output`,
+        details: {
+          command,
+          exitCode: result.exitCode,
+          stdout: result.stdout.substring(0, 2000),
+          stderr: result.stderr.substring(0, 2000),
+        },
+      };
+    }
+
+    if (filtered.length === 0) {
+      return {
+        type: "lint",
+        status: "pass",
+        title: "Lint & Type Check",
+        summary: `Linter reported ${errors.length} pre-existing error(s); none on changed lines`,
+        details: {
+          command,
+          checked: lintableFiles,
+          preExisting: errors.length,
+        },
+      };
+    }
 
     return {
       type: "lint",
       status: "fail",
       title: "Lint & Type Check",
-      summary: `Lint check failed with ${errors.length} error(s) (${command})`,
+      summary: `Lint check failed with ${filtered.length} error(s) on changed lines (${kind ?? "custom"})`,
       details: {
         command,
-        findings: errors.map(e => ({
+        findings: filtered.map((e) => ({
           file: e.file,
           line: e.line,
           rule: e.rule,
           message: e.message,
         })),
-        errors,
-        errorCount: errors.length,
+        errors: filtered,
+        errorCount: filtered.length,
+        preExisting: errors.length - filtered.length,
         stdout: result.stdout.substring(0, 2000),
         stderr: result.stderr.substring(0, 2000),
       },
@@ -149,4 +214,28 @@ export async function checkLint(
       details: { error: errMsg },
     };
   }
+}
+
+function filterToAddedLines(errors: LintError[], files: ChangedFile[]): LintError[] {
+  const addedLineMap = new Map<string, Set<number>>();
+  for (const file of files) {
+    if (!file.addedLines) continue;
+    addedLineMap.set(
+      file.path,
+      new Set(file.addedLines.map((l) => l.lineNo)),
+    );
+  }
+
+  return errors.filter((e) => {
+    // Findings without file/line cannot be scoped — keep them (e.g., command-level failures).
+    if (!e.file || e.line === undefined) return true;
+    const lines = addedLineMap.get(e.file)
+      // Fallback: linter output may include "./path" or absolute paths — match by basename suffix.
+      ?? [...addedLineMap.entries()].find(([p]) => e.file === p || e.file?.endsWith(`/${p}`) || p.endsWith(`/${e.file}`))?.[1];
+    if (!lines) {
+      // We don't have addedLines for this file — be permissive (could be a config-level finding).
+      return true;
+    }
+    return lines.has(e.line);
+  });
 }
