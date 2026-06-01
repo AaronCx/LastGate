@@ -102,6 +102,50 @@ describe("Secret Scanner", () => {
     expect(result.status).toBe("pass");
   });
 
+  test("PR-3: path allowlist silences findings in matched files", async () => {
+    const cfg: SecretCheckConfig = { enabled: true, severity: "fail" };
+    const files = [file("config.example", 'const key = "AKIAIOSFODNN7EXAMPLE";')];
+    const result = await checkSecrets(files, cfg, { allow: ["**/*.example"] });
+    expect(result.status).toBe("pass");
+    expect((result.details.findings as any[]).length).toBe(0);
+  });
+
+  test("PR-3: per-check allow merges with top-level allow", async () => {
+    const cfg: SecretCheckConfig = {
+      enabled: true,
+      severity: "fail",
+      allow: ["**/fixtures/**"],
+    };
+    const files = [file("packages/x/fixtures/key.ts", 'const key = "AKIAIOSFODNN7EXAMPLE";')];
+    const result = await checkSecrets(files, cfg);
+    expect(result.status).toBe("pass");
+  });
+
+  test("PR-3: inline // lastgate-ignore suppresses a finding", async () => {
+    const cfg: SecretCheckConfig = { enabled: true, severity: "fail" };
+    const files = [file("src/x.ts", 'const k = "AKIAIOSFODNN7EXAMPLE"; // lastgate-ignore')];
+    const result = await checkSecrets(files, cfg);
+    expect(result.status).toBe("pass");
+  });
+
+  test("PR-3: baseline fingerprint suppresses a previously-accepted finding", async () => {
+    const cfg: SecretCheckConfig = { enabled: true, severity: "fail" };
+    const files = [file("src/x.ts", 'const k = "AKIAIOSFODNN7EXAMPLE";')];
+
+    // First run with no baseline → fail, collect fingerprints
+    const first = await checkSecrets(files, cfg);
+    expect(first.status).toBe("fail");
+    const { fingerprint } = await import("../../config/allowlist");
+    const fingerprints = (first.details.findings as any[]).map((f) =>
+      fingerprint({ check: "secrets", file: f.file, rule: f.pattern, redactedMatch: f.match }),
+    );
+    const baseline = new Set(fingerprints);
+
+    // Second run with baseline → pass (all findings suppressed)
+    const second = await checkSecrets(files, cfg, { baseline });
+    expect(second.status).toBe("pass");
+  });
+
   // === Should PASS ===
 
   test("passes normal TypeScript code with no secrets", async () => {

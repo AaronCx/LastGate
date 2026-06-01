@@ -1,4 +1,5 @@
 import type {
+  CheckContext,
   CheckResult,
   CheckRunResults,
   ChangedFile,
@@ -15,6 +16,7 @@ import { checkFilePatterns } from "./checks/file-patterns";
 import { checkCommitMessage } from "./checks/commit-message";
 import { checkAgentPatterns } from "./checks/agent-patterns";
 import { getDefaultConfig } from "./config/defaults";
+import { DEFAULT_BASELINE_PATH, loadBaseline } from "./config/allowlist";
 
 export interface PipelineInput {
   files: ChangedFile[];
@@ -31,13 +33,21 @@ export async function runCheckPipeline(
   const config = { ...getDefaultConfig(), ...input.config };
   const results: CheckResult[] = [];
 
+  // PR-3: load baseline fingerprints once and pass to every content-scanning check.
+  const baselinePath = config.baseline ?? DEFAULT_BASELINE_PATH;
+  const baseline = await loadBaseline(baselinePath);
+  const sharedContext: CheckContext = {
+    baseline,
+    allow: config.allow,
+  };
+
   const checks: Array<{
     key: keyof PipelineConfig["checks"];
     fn: () => Promise<CheckResult>;
   }> = [
     {
       key: "secrets",
-      fn: () => checkSecrets(input.files, config.checks.secrets!),
+      fn: () => checkSecrets(input.files, config.checks.secrets!, sharedContext),
     },
     {
       key: "file_patterns",

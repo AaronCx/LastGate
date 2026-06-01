@@ -1,8 +1,9 @@
-import type { AddedLine, ChangedFile, CheckResult, FindingSeverity, SecretCheckConfig } from "../types";
+import type { AddedLine, ChangedFile, CheckContext, CheckResult, FindingSeverity, SecretCheckConfig } from "../types";
 import { SECRET_PATTERNS } from "../scanners/regex-patterns";
 import { calculateEntropy, extractTokens } from "../scanners/entropy";
 import { parseAddedLines } from "../diff/parse";
 import { statusFromFindings } from "./status";
+import { fingerprint, isLineIgnored, isPathAllowed } from "../config/allowlist";
 
 const DEFAULT_ENTROPY_THRESHOLD = 4.8;
 const DEFAULT_ENTROPY_SEVERITY: FindingSeverity = "medium";
@@ -43,8 +44,28 @@ interface Finding {
 export async function checkSecrets(
   files: ChangedFile[],
   config: SecretCheckConfig,
+  context?: CheckContext,
 ): Promise<CheckResult> {
   const findings: Finding[] = [];
+  const allowGlobs = [...(context?.allow ?? []), ...(config.allow ?? [])];
+  const baseline = context?.baseline;
+
+  const isSuppressed = (
+    file: ChangedFile,
+    lineNo: number,
+    text: string,
+    rule: string,
+    redactedMatch: string,
+  ): boolean => {
+    if (isPathAllowed(file.path, allowGlobs)) return true;
+    const contentLines = file.content ? file.content.split("\n") : [];
+    if (isLineIgnored(lineNo, contentLines, text)) return true;
+    if (baseline && baseline.size > 0) {
+      const fp = fingerprint({ check: "secrets", file: file.path, rule, redactedMatch });
+      if (baseline.has(fp)) return true;
+    }
+    return false;
+  };
 
   // Compile custom patterns if any
   const customPatterns = (config.custom_patterns ?? []).map((p) => ({
@@ -73,11 +94,13 @@ export async function checkSecrets(
         const pattern = new RegExp(sp.pattern.source, sp.pattern.flags.replace("g", "") + "g");
         let match: RegExpExecArray | null;
         while ((match = pattern.exec(line)) !== null) {
+          const redactedMatch = redact(match[0]);
+          if (isSuppressed(file, lineNum, line, sp.name, redactedMatch)) continue;
           findings.push({
             file: file.path,
             line: lineNum,
             pattern: sp.name,
-            match: redact(match[0]),
+            match: redactedMatch,
             severity: sp.severity,
           });
         }
@@ -110,11 +133,13 @@ export async function checkSecrets(
               (f) => f.file === file.path && f.line === lineNum,
             );
             if (!alreadyFound) {
+              const redactedMatch = redact(token);
+              if (isSuppressed(file, lineNum, line, "High Entropy String", redactedMatch)) continue;
               findings.push({
                 file: file.path,
                 line: lineNum,
                 pattern: "High Entropy String",
-                match: redact(token),
+                match: redactedMatch,
                 severity: entropySeverity,
               });
             }
