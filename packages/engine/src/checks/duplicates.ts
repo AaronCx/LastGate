@@ -1,4 +1,5 @@
 import type { CommitInfo, CheckResult, DuplicateCheckConfig } from "../types";
+import { statusFromFindings } from "./status";
 
 function levenshteinDistance(a: string, b: string): number {
   const m = a.length;
@@ -142,7 +143,12 @@ export async function checkDuplicates(
 
   return {
     type: "duplicates",
-    status: findings.length > 0 ? "fail" : "pass",
+    // Duplicate findings are tagged "medium" — they're surface noise more than
+    // safety issues — so they cap at warn regardless of config.severity.
+    status: statusFromFindings(
+      findings.map(() => ({ severity: "medium" as const })),
+      { severity: config.severity },
+    ),
     title: "Duplicate Commit Detector",
     summary,
     details: {

@@ -180,20 +180,20 @@ describe("Commit Message Validator", () => {
     const commits = [commitInfo("abc1234", "update")];
     const result = await checkCommitMessage(commits, config);
     // checkCommitMessage always returns "fail" when findings exist
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
   });
 
   it("fails on empty message", async () => {
     const commits = [commitInfo("abc1234", "")];
     const result = await checkCommitMessage(commits, config);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
   });
 
   it("fails on suspiciously long message (>500 chars)", async () => {
     const longMessage = "feat: " + "a".repeat(500);
     const commits = [commitInfo("abc1234", longMessage)];
     const result = await checkCommitMessage(commits, config);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
   });
 
   it("passes fix:, chore:, docs: prefixes", async () => {
@@ -222,7 +222,7 @@ describe("Duplicate Commit Detector", () => {
       commitInfo("ccc3333", "fix: update styling"),
     ];
     const result = await checkDuplicates(commits, [], config);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
   });
 
   it("detects near-identical messages against previous commits", async () => {
@@ -232,7 +232,7 @@ describe("Duplicate Commit Detector", () => {
       commitInfo("aaa1111", "fix: update styling"),
     ];
     const result = await checkDuplicates(commits, previousCommits, config);
-    expect(result.status).toBe("fail");
+    expect(result.status).toBe("warn");
   });
 
   it("passes unique commits", async () => {

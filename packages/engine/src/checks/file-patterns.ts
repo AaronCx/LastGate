@@ -1,4 +1,5 @@
 import type { ChangedFile, CheckResult, FilePatternCheckConfig } from "../types";
+import { statusFromFindings } from "./status";
 
 const DEFAULT_BLOCKED_PATTERNS = [
   ".env",
@@ -131,9 +132,14 @@ export async function checkFilePatterns(
     }
   }
 
+  // file_patterns findings are always high-severity (committing .env / *.pem /
+  // a private key file is a real safety issue), so they propagate via the
+  // shared statusFromFindings: with severity=fail (default) → fail; with
+  // severity=warn → warn (the user opted out).
+  const severitySources = findings.map(() => ({ severity: "high" as const }));
   return {
     type: "file_patterns",
-    status: findings.length > 0 ? "fail" : "pass",
+    status: statusFromFindings(severitySources, { severity: config.severity }),
     title: "File Pattern Guard",
     summary: findings.length === 0
       ? "No blocked file patterns detected"
