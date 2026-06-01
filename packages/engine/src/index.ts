@@ -1,4 +1,4 @@
-export { runCheckPipeline } from "./pipeline";
+export { runCheckPipeline, runChecksIterable, runSingleCheck } from "./pipeline";
 export { parseConfig } from "./config/parser";
 export { parseAddedLines } from "./diff/parse";
 export { statusFromFindings } from "./checks/status";
