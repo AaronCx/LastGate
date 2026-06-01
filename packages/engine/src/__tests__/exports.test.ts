@@ -31,15 +31,18 @@ describe("Engine public exports", () => {
     expect(typeof engine.DEFAULT_BASELINE_PATH).toBe("string");
   });
 
+  test("getDefaultConfig is exported as a function (F2 fix needs it for --only merge)", () => {
+    expect(typeof engine.getDefaultConfig).toBe("function");
+  });
+
   test("no unexpected runtime exports exist", () => {
-    // Runtime exports: runCheckPipeline, parseConfig, parseAddedLines, statusFromFindings,
-    // isPathAllowed, isLineIgnored, fingerprint, loadBaseline, writeBaseline, DEFAULT_BASELINE_PATH
     const runtimeKeys = Object.keys(engine);
     const expected = [
       "runCheckPipeline",
       "runChecksIterable",
       "runSingleCheck",
       "parseConfig",
+      "getDefaultConfig",
       "parseAddedLines",
       "statusFromFindings",
       "isPathAllowed",

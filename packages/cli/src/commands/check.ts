@@ -2,7 +2,7 @@ import { Command } from "commander";
 import ora from "ora";
 import { readFile } from "fs/promises";
 import { resolve } from "path";
-import { parseConfig, runCheckPipeline } from "@lastgate/engine";
+import { getDefaultConfig, parseConfig, runCheckPipeline } from "@lastgate/engine";
 import type { CommitInfo, PipelineConfig, PipelineInput } from "@lastgate/engine";
 import { getStagedDiff, getBranchDiff } from "../git/diff";
 import { getCurrentCommitInfo } from "../git/commits";
@@ -129,25 +129,34 @@ async function runCheck(options: CheckOptions): Promise<void> {
       config,
     };
 
-    // Apply --only filter: disable all checks except the specified ones
+    // Apply --only filter: disable every check except the listed ones.
+    //
+    // Important: seed each allowed check from `getDefaultConfig().checks[key]` before
+    // overriding `enabled`, so we don't lose `severity` / `entropy_threshold` / etc.
+    // The previous implementation built `{ enabled: true }` from scratch, which the
+    // pipeline's shallow merge then used as the *entire* check config — silently
+    // dropping `severity: "fail"` and downgrading critical findings to warn.
+    // That was Finding F2 from docs/fp-investigation.md.
     if (options.only) {
       const allowedChecks = new Set(options.only.split(",").map((s) => s.trim()));
       const allCheckKeys = [
         "secrets", "file_patterns", "commit_message", "duplicates",
         "lint", "build", "dependencies", "agent_patterns",
-      ];
+      ] as const;
+      const defaultChecks = getDefaultConfig().checks;
+      // Start from a merge of defaults + user config so we preserve every default
+      // (severity, entropy thresholds, profile, …) before flipping `enabled`.
       if (!input.config) input.config = {};
-      if (!(input.config as Record<string, any>).checks) {
-        (input.config as Record<string, any>).checks = {};
-      }
-      const checks = (input.config as Record<string, any>).checks;
+      const cfg = input.config as PipelineConfig;
+      if (!cfg.checks) cfg.checks = {} as PipelineConfig["checks"];
+      const checks = cfg.checks as Record<string, Record<string, unknown>>;
       for (const key of allCheckKeys) {
-        if (!allowedChecks.has(key)) {
-          checks[key] = { ...(checks[key] || {}), enabled: false };
-        } else {
-          // Ensure allowed checks have enabled: true (so they aren't overridden by a partial config)
-          checks[key] = { ...(checks[key] || {}), enabled: true };
-        }
+        const merged = {
+          ...(defaultChecks[key] ?? {}),
+          ...(checks[key] ?? {}),
+        };
+        merged.enabled = allowedChecks.has(key);
+        checks[key] = merged;
       }
     }
 

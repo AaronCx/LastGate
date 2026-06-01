@@ -1,5 +1,6 @@
 export { runCheckPipeline, runChecksIterable, runSingleCheck } from "./pipeline";
 export { parseConfig } from "./config/parser";
+export { getDefaultConfig } from "./config/defaults";
 export { parseAddedLines } from "./diff/parse";
 export { statusFromFindings } from "./checks/status";
 export {
