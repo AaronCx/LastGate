@@ -1,0 +1,45 @@
+name: Deploy
+
+# Auto-deploys apps/web to Vercel production on merge to main, so the live gate
+# can't drift behind the repo (the root cause this series fixes). No-ops cleanly
+# until the Vercel credentials are configured — add these repo secrets to enable:
+#   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+# (Alternatively, enable Vercel's native Git production deploys for main and
+# delete this workflow — either path keeps the deploy synced.)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-web:
+    name: Deploy apps/web to Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Vercel credentials
+        id: guard
+        run: |
+          if [ -n "${{ secrets.VERCEL_TOKEN }}" ] && [ -n "${{ secrets.VERCEL_ORG_ID }}" ] && [ -n "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Vercel secrets not set — skipping auto-deploy. Add VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID to enable."
+          fi
+
+      - if: steps.guard.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        if: steps.guard.outputs.ready == 'true'
+        run: npm install -g vercel@latest
+
+      - name: Pull, build, and deploy (production)
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+          vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+          vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
