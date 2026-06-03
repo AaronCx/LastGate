@@ -13,20 +13,8 @@ allow:
   - "tests/**"
   # CI workflow files reference secrets via ${{ secrets.X }} but never contain
   # secret values; their shell/prose lines reliably trip the entropy + token
-  # scanners. (Exact paths too — the stale live gate mishandles the dotted-dir
-  # glob; the glob is the durable form once the deploy is synced.)
+  # scanners even under correct added-lines scanning. Permanent exemption.
   - ".github/workflows/**"
-  - ".github/workflows/deploy.yml"
-  - ".github/workflows/drift-check.yml"
-  - ".github/workflows/ci.yml"
-  # TEMPORARY — remove once the deploy is synced (see lastgate-deploy-drift-pr).
-  # The live gate runs a stale engine that whole-file-scans MODIFIED files and
-  # flags pre-existing high-entropy lines (chalk format strings; webhook signature
-  # handling) as false positives — the exact bug this PR series fixes. These two
-  # files are touched by the meta-stamping work; drop these entries once the live
-  # gate serves current main (correct added-lines scanning + inline-ignore).
-  - "packages/cli/src/output/formatter.ts"
-  - "apps/web/app/api/webhooks/github/route.ts"
   - "docs/fp-investigation.md"
   - "docs/fp-report.md"
   - "package-lock.json"
