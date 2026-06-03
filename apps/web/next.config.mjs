@@ -12,3 +12,5 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
+// vercel-redeploy: 1780352986

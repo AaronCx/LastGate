@@ -1,4 +1,5 @@
 import type { CheckRunResults, CheckResult } from "@lastgate/engine";
+import { formatMetaFooter } from "@lastgate/engine";
 import { success, error, warning, dim, bold, PASS, FAIL, WARN } from "./colors";
 import chalk from "chalk";
 
@@ -140,6 +141,12 @@ export function formatCheckResults(results: CheckRunResults): string {
   if (failCount > 0 || warnCount > 0) {
     lines.push("");
     lines.push(dim("Fix these issues before pushing."));
+  }
+
+  // Provenance footer — which engine + threshold produced this result.
+  if (results.meta) {
+    lines.push("");
+    lines.push(dim(` ${formatMetaFooter(results.meta)}`));
   }
 
   lines.push("");

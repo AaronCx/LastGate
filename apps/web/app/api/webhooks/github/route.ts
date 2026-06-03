@@ -419,6 +419,9 @@ async function handleCheckEvent(
         passed_checks: passed,
         failed_checks: failed,
         warned_checks: warned,
+        // Provenance: which engine + resolved config produced this run.
+        engine_version: pipelineResult.meta.engineVersion,
+        meta: pipelineResult.meta,
       })
       .eq("id", checkRunRecord.id);
   }

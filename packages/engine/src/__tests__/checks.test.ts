@@ -478,6 +478,7 @@ describe("Feedback", () => {
       warningCount: 0,
       summary: "1 failed, 0 warnings, 0 passed",
       annotations: [],
+      meta: { engineVersion: "test", entropyThreshold: 4.8, inlineIgnore: true },
     };
     const feedback = generateAgentFeedback(checkResults);
     expect(feedback).toContain("Secret Scanner");
@@ -504,6 +505,7 @@ describe("Feedback", () => {
       warningCount: 0,
       summary: "1 failed, 0 warnings, 0 passed",
       annotations: [],
+      meta: { engineVersion: "test", entropyThreshold: 4.8, inlineIgnore: true },
     };
     const feedback = generateAgentFeedback(checkResults);
     expect(feedback).toContain("lastgate:feedback");
@@ -518,6 +520,7 @@ describe("Feedback", () => {
       warningCount: 0,
       summary: "All checks passed",
       annotations: [],
+      meta: { engineVersion: "test", entropyThreshold: 4.8, inlineIgnore: true },
     };
     const feedback = generateAgentFeedback(checkResults);
     expect(typeof feedback).toBe("string");

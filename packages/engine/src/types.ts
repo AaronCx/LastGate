@@ -18,6 +18,22 @@ export interface CheckResult {
   duration_ms?: number;
 }
 
+/**
+ * Provenance for a check run: which engine + resolved config produced this
+ * result. Stamped into every run so a stale deployment can't be misdiagnosed —
+ * the output says exactly what judged it.
+ */
+export interface CheckRunMeta {
+  /** Engine package version that ran the checks. */
+  engineVersion: string;
+  /** The entropy threshold actually applied (resolved config, not the default). */
+  entropyThreshold: number;
+  /** Whether this engine honors inline `lastgate-ignore` suppressions. */
+  inlineIgnore: boolean;
+  /** Versioned ruleset identifier, when rulesets are versioned. */
+  rulesetVersion?: string;
+}
+
 export interface CheckRunResults {
   checks: CheckResult[];
   hasFailures: boolean;
@@ -26,6 +42,8 @@ export interface CheckRunResults {
   warningCount: number;
   summary: string;
   annotations: Annotation[];
+  /** Engine + resolved-config provenance (see CheckRunMeta). */
+  meta: CheckRunMeta;
 }
 
 export interface Annotation {

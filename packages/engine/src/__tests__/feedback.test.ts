@@ -13,6 +13,7 @@ function makeResults(checks: CheckResult[], annotations: Annotation[] = []): Che
     warningCount: warnings.length,
     summary: `${checks.filter(c => c.status === "pass").length} passed, ${warnings.length} warnings, ${failures.length} failures`,
     annotations,
+    meta: { engineVersion: "test", entropyThreshold: 4.8, inlineIgnore: true },
   };
 }
 

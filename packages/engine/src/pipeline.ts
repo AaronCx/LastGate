@@ -2,13 +2,20 @@ import type {
   CheckContext,
   CheckProfile,
   CheckResult,
+  CheckRunMeta,
   CheckRunResults,
   ChangedFile,
   CommitInfo,
   PipelineConfig,
   Annotation,
 } from "./types";
+import { ENGINE_VERSION } from "./version";
 import { checkSecrets } from "./checks/secrets";
+
+// Mirrors the secrets check's default (kept local so resolveMeta doesn't have to
+// import from the secrets module). The secrets check remains the authority for
+// applying it; this is only for reporting the resolved value in meta.
+const DEFAULT_ENTROPY_THRESHOLD = 4.8;
 import { checkDuplicates } from "./checks/duplicates";
 import { checkLint } from "./checks/lint";
 import { checkBuild } from "./checks/build";
@@ -151,6 +158,27 @@ export async function runSingleCheck(
   return runEntry(entry);
 }
 
+/** Resolve the run's provenance metadata from the merged config. */
+export function resolveMeta(config: Partial<PipelineConfig> | undefined): CheckRunMeta {
+  const merged = { ...getDefaultConfig(), ...config };
+  return {
+    engineVersion: ENGINE_VERSION,
+    entropyThreshold: merged.checks.secrets?.entropy_threshold ?? DEFAULT_ENTROPY_THRESHOLD,
+    inlineIgnore: true,
+  };
+}
+
+/** One-line provenance footer, e.g. `engine v0.3.0 · entropy 4.8 · inline-ignore on`. */
+export function formatMetaFooter(meta: CheckRunMeta): string {
+  const parts = [
+    `engine v${meta.engineVersion}`,
+    `entropy ${meta.entropyThreshold}`,
+    `inline-ignore ${meta.inlineIgnore ? "on" : "off"}`,
+  ];
+  if (meta.rulesetVersion) parts.push(`ruleset ${meta.rulesetVersion}`);
+  return parts.join(" · ");
+}
+
 export async function runCheckPipeline(
   input: PipelineInput,
   opts: PipelineOptions = {},
@@ -166,7 +194,8 @@ export async function runCheckPipeline(
   const warnings = results.filter((r) => r.status === "warn");
   const annotations = buildAnnotations(results);
 
-  const summary = buildSummary(results);
+  const meta = resolveMeta(input.config);
+  const summary = buildSummary(results, meta);
 
   return {
     checks: results,
@@ -176,6 +205,7 @@ export async function runCheckPipeline(
     warningCount: warnings.length,
     summary,
     annotations,
+    meta,
   };
 }
 
@@ -202,7 +232,7 @@ function buildAnnotations(results: CheckResult[]): Annotation[] {
   return annotations;
 }
 
-function buildSummary(results: CheckResult[]): string {
+function buildSummary(results: CheckResult[], meta?: CheckRunMeta): string {
   const lines: string[] = [];
   lines.push("## LastGate Check Results\n");
 
@@ -226,6 +256,12 @@ function buildSummary(results: CheckResult[]): string {
   lines.push(
     `**${passes} passed**, **${warnings} warnings**, **${failures} failures**`
   );
+
+  // Provenance footer — so a PR author sees which engine + threshold judged them.
+  if (meta) {
+    lines.push("");
+    lines.push(`_${formatMetaFooter(meta)}_`);
+  }
 
   return lines.join("\n");
 }
