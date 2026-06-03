@@ -51,6 +51,9 @@ describe("Engine public exports", () => {
       "loadBaseline",
       "writeBaseline",
       "DEFAULT_BASELINE_PATH",
+      "resolveMeta",
+      "formatMetaFooter",
+      "ENGINE_VERSION",
     ];
     for (const key of expected) {
       expect(runtimeKeys).toContain(key);
@@ -82,6 +85,7 @@ describe("Engine type exports compile correctly", () => {
       warningCount: 0,
       summary: "",
       annotations: [],
+      meta: { engineVersion: "test", entropyThreshold: 4.8, inlineIgnore: true },
     };
     expect(results.checks).toEqual([]);
   });

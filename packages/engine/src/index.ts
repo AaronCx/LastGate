@@ -1,4 +1,5 @@
-export { runCheckPipeline, runChecksIterable, runSingleCheck } from "./pipeline";
+export { runCheckPipeline, runChecksIterable, runSingleCheck, resolveMeta, formatMetaFooter } from "./pipeline";
+export { ENGINE_VERSION } from "./version";
 export { parseConfig } from "./config/parser";
 export { getDefaultConfig } from "./config/defaults";
 export { parseAddedLines } from "./diff/parse";
@@ -14,6 +15,7 @@ export {
 export type {
   CheckResult,
   CheckRunResults,
+  CheckRunMeta,
   PipelineConfig,
   ChangedFile,
   CommitInfo,
