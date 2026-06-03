@@ -32,11 +32,11 @@ jobs:
           echo "deployed engine version: ${DEPLOYED_VERSION:-<none>}"
 
           if [ -z "$DEPLOYED_VERSION" ]; then
-            echo "::error::no engineVersion at the deploy — it predates /api/version, itself a drift signal. Redeploy apps/web from main."
+            echo "::error::no deployed engineVersion — redeploy apps/web from main."
             exit 1
           fi
           if [ "$DEPLOYED_VERSION" != "$REPO_VERSION" ]; then
-            echo "::error::drift — live gate serves v$DEPLOYED_VERSION but main is v$REPO_VERSION. Redeploy apps/web from main."
+            echo "::error::drift: deployed $DEPLOYED_VERSION but main is $REPO_VERSION — redeploy."
             exit 1
           fi
           echo "deployed engine v$DEPLOYED_VERSION matches main"
