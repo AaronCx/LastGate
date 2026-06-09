@@ -212,6 +212,50 @@ const greeting = "Hello World";
     expect((result.details.findings as any[]).some((f: any) => f.pattern === "Internal Billing Key")).toBe(true);
   });
 
+  test("skips invalid custom pattern instead of throwing", async () => {
+    const config: SecretCheckConfig = {
+      ...defaultConfig,
+      custom_patterns: [
+        { name: "Broken Regex", pattern: "(unclosed[group", severity: "critical" },
+        { name: "Valid Key", pattern: "VALID_KEY=[A-Za-z0-9]{16,}", severity: "critical" },
+      ],
+    };
+    const files = [file("src/keys.ts", "VALID_KEY=abcdefghijklmnop1234")];
+    const result = await checkSecrets(files, config);
+    expect(result.status).toBe("fail");
+    expect((result.details.findings as any[]).some((f: any) => f.pattern === "Valid Key")).toBe(true);
+    expect((result.details.findings as any[]).some((f: any) => f.pattern === "Broken Regex")).toBe(false);
+  });
+
+  test("skips custom patterns longer than 256 chars", async () => {
+    const config: SecretCheckConfig = {
+      ...defaultConfig,
+      custom_patterns: [{
+        name: "Oversized Pattern",
+        pattern: "A".repeat(300),
+        severity: "critical",
+      }],
+    };
+    const files = [file("src/keys.ts", "A".repeat(300))];
+    const result = await checkSecrets(files, config);
+    expect((result.details.findings as any[]).some((f: any) => f.pattern === "Oversized Pattern")).toBe(false);
+  });
+
+  test("does not run custom patterns against very long lines", async () => {
+    const config: SecretCheckConfig = {
+      ...defaultConfig,
+      custom_patterns: [{
+        name: "Marker Key",
+        pattern: "MARKER_KEY=[A-Za-z0-9]{16,}",
+        severity: "critical",
+      }],
+    };
+    const longLine = "MARKER_KEY=abcdefghijklmnop1234 " + "x ".repeat(3000);
+    const files = [file("src/long.ts", longLine)];
+    const result = await checkSecrets(files, config);
+    expect((result.details.findings as any[]).some((f: any) => f.pattern === "Marker Key")).toBe(false);
+  });
+
   // === Edge Cases ===
 
   test("reports multiple secrets on different lines", async () => {
