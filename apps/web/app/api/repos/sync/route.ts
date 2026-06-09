@@ -1,11 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getInstallationOctokit } from "@/lib/github/app";
+import { requireSession, unauthorizedResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const installationId = process.env.GITHUB_APP_INSTALLATION_ID;
     if (!installationId) {
       return NextResponse.json(

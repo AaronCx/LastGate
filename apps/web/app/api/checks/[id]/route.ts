@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSession, unauthorizedResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const { id } = await params;
     const supabase = createServerSupabaseClient();
 
@@ -56,14 +59,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const { id } = await params;
     const supabase = createServerSupabaseClient();
-    const cookieStore = await cookies();
-    const sessionId = cookieStore.get("lastgate_session")?.value;
-
-    if (!sessionId) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
 
     const body = await request.json();
     const { action, comment } = body;
@@ -94,7 +94,7 @@ export async function POST(
     // Insert the review action
     const { error: insertError } = await supabase.from("review_actions").insert({
       check_run_id: id,
-      user_id: sessionId,
+      user_id: session.id,
       action,
       comment: comment || null,
     });

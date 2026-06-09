@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSession, unauthorizedResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const supabase = createServerSupabaseClient();
     const { data, error } = await supabase
       .from("teams")
       .select("*, team_members(count)")
+      .in("id", session.teamIds)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -22,9 +27,13 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const supabase = createServerSupabaseClient();
     const body = await request.json();
-    const { name, slug, github_org_id, github_org_login, created_by } = body;
+    const { name, slug, github_org_id, github_org_login } = body;
+    const created_by = session.id;
 
     if (!name || !slug) {
       return NextResponse.json({ error: "name and slug are required" }, { status: 400 });
