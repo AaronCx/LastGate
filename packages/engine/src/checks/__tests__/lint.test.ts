@@ -15,6 +15,22 @@ function file(path: string, content: string): ChangedFile {
 }
 
 describe("Lint & Type Checker", () => {
+  test("skips on Vercel serverless (no repo checkout to lint)", async () => {
+    const prev = process.env.VERCEL;
+    process.env.VERCEL = "1";
+    try {
+      const config = { ...defaultConfig, command: "bun run lint" } as any;
+      const files = [file("src/index.ts", "const x = 1;")];
+      const result = await checkLint(files, config);
+      expect(result.status).toBe("pass");
+      expect(result.summary).toContain("delegated to GitHub Actions CI");
+      expect((result.details as any).skipped).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = prev;
+    }
+  });
+
   test("passes when no linter config detected (skip gracefully)", async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "lint-test-"));
     try {
