@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { randomBytes, createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -9,12 +10,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const supabase = createServerSupabaseClient();
 
-    // Mode 1: Generate a key directly (from the web UI)
+    // Mode 1: Generate a key directly (from the web UI) — session required
     if (body.action === "generate") {
+      const session = await requireSession(request);
+      if (!session) return unauthorizedResponse();
+
       const rawKey = `lg_cli_${randomBytes(24).toString("hex")}`;
       const keyHash = createHash("sha256").update(rawKey).digest("hex");
 
       const { error: insertError } = await supabase.from("api_keys").insert({
+        user_id: session.id,
         name: body.name || `API Key - ${new Date().toISOString().split("T")[0]}`,
         key_hash: keyHash,
         key_prefix: rawKey.slice(0, 12),
@@ -93,8 +98,11 @@ export async function POST(request: NextRequest) {
 }
 
 // GET endpoint: list API keys
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const supabase = createServerSupabaseClient();
 
     const { data, error } = await supabase
@@ -117,6 +125,9 @@ export async function GET() {
 // DELETE endpoint: revoke an API key
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
