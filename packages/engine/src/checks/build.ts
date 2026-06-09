@@ -4,6 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CheckResult, BuildCheckConfig } from "../types";
 
+// "owner/repo" with only safe characters — repoFullName is interpolated into
+// a shell command for git clone, so reject anything else outright.
+const REPO_FULL_NAME_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+
 export async function checkBuild(
   config: BuildCheckConfig,
   repoFullName?: string,
@@ -33,6 +37,15 @@ export async function checkBuild(
   }
 
   if (!hasPackageJson && repoFullName) {
+    if (!REPO_FULL_NAME_PATTERN.test(repoFullName)) {
+      return {
+        type: "build",
+        status: "fail",
+        title: "Build Verifier",
+        summary: `Build check refused — invalid repository name: ${repoFullName.substring(0, 100)}`,
+        details: { command, skipped: true, reason: "repository name failed validation" },
+      };
+    }
     try {
       tempDir = mkdtempSync(join(tmpdir(), "lastgate-build-"));
       const cloneUrl = `https://github.com/${repoFullName}.git`;

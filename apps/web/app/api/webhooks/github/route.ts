@@ -177,8 +177,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[webhook] Secret length=${secret.length} sig_prefix=${signature.slice(0, 20)}`);
-
     const isValid = verifyWebhookSignature(body, signature, secret);
     if (!isValid) {
       console.log("[webhook] Invalid signature — secret mismatch");

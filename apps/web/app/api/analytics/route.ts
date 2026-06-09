@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSession, unauthorizedResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const supabase = createServerSupabaseClient();
     const { searchParams } = new URL(request.url);
 

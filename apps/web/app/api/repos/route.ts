@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSession, unauthorizedResponse } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const supabase = createServerSupabaseClient();
 
     const { data, error } = await supabase
@@ -28,6 +32,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const supabase = createServerSupabaseClient();
     const body = await request.json();
 
@@ -79,6 +86,9 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const supabase = createServerSupabaseClient();
     const body = await request.json();
 

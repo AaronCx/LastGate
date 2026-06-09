@@ -1,5 +1,5 @@
 import type { AddedLine, ChangedFile, CheckContext, CheckResult, FindingSeverity, SecretCheckConfig } from "../types";
-import { SECRET_PATTERNS } from "../scanners/regex-patterns";
+import { SECRET_PATTERNS, type SecretPattern } from "../scanners/regex-patterns";
 import { calculateEntropy, extractTokens } from "../scanners/entropy";
 import { parseAddedLines } from "../diff/parse";
 import { statusFromFindings } from "./status";
@@ -7,6 +7,10 @@ import { fingerprint, isLineIgnored, isPathAllowed } from "../config/allowlist";
 
 const DEFAULT_ENTROPY_THRESHOLD = 4.8;
 const DEFAULT_ENTROPY_SEVERITY: FindingSeverity = "medium";
+
+// Guards for untrusted custom patterns sourced from the PR's .lastgate.yml.
+const MAX_CUSTOM_PATTERN_LENGTH = 256;
+const MAX_CUSTOM_PATTERN_LINE_LENGTH = 4096;
 
 const BINARY_EXTENSIONS = new Set([
   ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg", ".webp",
@@ -67,14 +71,28 @@ export async function checkSecrets(
     return false;
   };
 
-  // Compile custom patterns if any
-  const customPatterns = (config.custom_patterns ?? []).map((p) => ({
-    name: p.name,
-    pattern: new RegExp(p.pattern, "gi"),
-    severity: (p.severity ?? "high") as "critical" | "high",
-  }));
+  // Compile custom patterns if any. Patterns come from the PR branch's
+  // .lastgate.yml, so treat them as untrusted: cap their length and skip any
+  // that fail to compile instead of crashing the whole check.
+  const customPatterns: Array<SecretPattern & { custom: true }> = [];
+  for (const p of config.custom_patterns ?? []) {
+    if (typeof p.pattern !== "string" || p.pattern.length > MAX_CUSTOM_PATTERN_LENGTH) continue;
+    try {
+      customPatterns.push({
+        name: p.name,
+        pattern: new RegExp(p.pattern, "gi"),
+        severity: (p.severity ?? "high") as "critical" | "high",
+        custom: true,
+      });
+    } catch {
+      // Invalid regex — skip it rather than failing the scan
+    }
+  }
 
-  const allPatterns = [...SECRET_PATTERNS, ...customPatterns];
+  const allPatterns: Array<SecretPattern & { custom?: boolean }> = [
+    ...SECRET_PATTERNS,
+    ...customPatterns,
+  ];
 
   for (const file of files) {
     if (file.status === "removed") continue;
@@ -91,6 +109,9 @@ export async function checkSecrets(
 
       // Check against all regex patterns
       for (const sp of allPatterns) {
+        // Untrusted custom patterns are not run against very long lines to
+        // bound worst-case (ReDoS-prone) regex execution time.
+        if (sp.custom && line.length > MAX_CUSTOM_PATTERN_LINE_LENGTH) continue;
         const pattern = new RegExp(sp.pattern.source, sp.pattern.flags.replace("g", "") + "g");
         let match: RegExpExecArray | null;
         while ((match = pattern.exec(line)) !== null) {

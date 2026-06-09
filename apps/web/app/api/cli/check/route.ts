@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
 
     // Hash the key before lookup
     const keyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
-    const keyPrefix = apiKey.slice(0, 8);
+    // Must match the 12-char prefix stored by /api/cli/auth on key creation
+    const keyPrefix = apiKey.slice(0, 12);
 
     const { data: keyRecord, error: keyError } = await supabase
       .from("api_keys")
