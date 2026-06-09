@@ -99,6 +99,19 @@ export async function checkLint(
 ): Promise<CheckResult> {
   const cwd = (config as LintCheckConfig & { cwd?: string }).cwd ?? process.cwd();
 
+  // On Vercel serverless, the repo isn't checked out and bun isn't available —
+  // lint commands can't run. GitHub Actions CI handles lint verification.
+  const isVercel = !!process.env.VERCEL || !!process.env.VERCEL_ENV;
+  if (isVercel) {
+    return {
+      type: "lint",
+      status: "pass",
+      title: "Lint & Type Check",
+      summary: "Lint check delegated to GitHub Actions CI (serverless environment)",
+      details: { skipped: true, reason: "serverless environment — repo not available locally" },
+    };
+  }
+
   // PR-4: scope the linter to changed lintable files only — don't run against the whole repo.
   const lintableFiles = files
     .filter((f) => f.status !== "removed")
