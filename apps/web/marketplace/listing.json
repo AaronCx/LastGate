@@ -1,0 +1,65 @@
+{
+  "listing": {
+    "name": "LastGate",
+    "tagline": "A pre-flight gatekeeper for AI-generated code.",
+    "primary_category": "Code quality",
+    "secondary_category": "Code review",
+    "supported_languages": [
+      "JavaScript",
+      "TypeScript",
+      "Python",
+      "Go",
+      "Ruby",
+      "Java",
+      "Any (language-agnostic checks)"
+    ],
+    "short_description": "Intercepts commits from Claude Code, Cursor, Copilot, and Devin — runs safety checks, blocks bad code, and feeds failures back to the agent so it can self-correct.",
+    "introductory_description": "AI coding agents ship more production code every day, but they ship it unchecked: leaked secrets, broken builds, vulnerable dependencies, files that should never be committed, and repeated thrash on the same problem. LastGate installs as a GitHub App and turns every push and pull request into a configurable safety pipeline. Failures block the merge via branch protection and are posted as structured PR comments that agents can parse and act on automatically — closing the loop so the agent fixes its own mistakes.",
+    "detailed_description_path": "./README.md"
+  },
+  "pricing_plans": [
+    {
+      "name": "Free",
+      "description": "For solo developers and open-source. Public repositories, all core checks, and the @lastgate/solo-dev policy pack.",
+      "monthly_price_in_cents": 0,
+      "yearly_price_in_cents": 0,
+      "price_model": "FREE",
+      "unit_name": null,
+      "bullets": [
+        "Unlimited public repositories",
+        "All regex + entropy checks (secrets, deps, files, agent patterns)",
+        "Shareable policy packs (extends:)",
+        "Structured agent-readable PR feedback"
+      ]
+    },
+    {
+      "name": "Team",
+      "description": "For teams shipping with AI agents on private repositories. Adds private repos, the LLM semantic-review tier, and the hardened @lastgate/agent-safety pack.",
+      "monthly_price_in_cents": 1900,
+      "yearly_price_in_cents": 19000,
+      "price_model": "FLAT_RATE",
+      "unit_name": null,
+      "bullets": [
+        "Everything in Free",
+        "Unlimited private repositories",
+        "LLM semantic review tier (intent-level regressions)",
+        "@lastgate/agent-safety and @lastgate/secrets-strict packs",
+        "Slack + email notifications"
+      ]
+    },
+    {
+      "name": "Enterprise",
+      "description": "Per-seat pricing for organizations. Adds audit logs, SSO, custom policy packs, and priority support.",
+      "monthly_price_in_cents": 900,
+      "yearly_price_in_cents": 9000,
+      "price_model": "PER_UNIT",
+      "unit_name": "seat",
+      "bullets": [
+        "Everything in Team",
+        "Org-wide audit log",
+        "Custom / private policy packs",
+        "SSO and priority support"
+      ]
+    }
+  ]
+}
