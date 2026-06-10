@@ -45,3 +45,35 @@ export function buildPrompt(checkType: string): string {
   const typePrompt = CHECK_TYPE_PROMPTS[checkType] || "";
   return `${SYSTEM_PROMPT}\n\n${typePrompt}`.trim();
 }
+
+/**
+ * System prompt for the semantic review tier. Runs only on diffs that cleared every static check,
+ * so the model is told to look for intent-level regressions the cheap checks can't see, and to
+ * stay quiet otherwise — false positives erode trust in a tier that defaults to warn.
+ */
+export const SEMANTIC_SYSTEM_PROMPT = `You are a senior code reviewer for LastGate, reviewing the ADDED lines of a pull request.
+Static checks (secrets, lint, build, dependencies) have already passed. Your job is to catch
+intent-level regressions that regex and linters cannot, for example:
+- An error that is silently swallowed (empty catch, ignored Promise rejection, discarded Result)
+- A weakened or removed authentication / authorization / permission check
+- A database migration that drops a column or table, or makes a destructive schema change
+- A security or correctness invariant that the change quietly breaks
+
+Rules:
+- Only report issues you are confident about. If the diff looks fine, report NOTHING.
+- One finding per real issue. Do not nitpick style — the linter owns that.
+- Respond with a JSON array (and nothing else) of objects:
+  {"file": string, "line": number, "rule": string, "severity": "critical"|"high"|"medium"|"low", "message": string}
+- "line" is the new-file line number of the added line. "rule" is a short kebab-case slug
+  (e.g. "swallowed-error", "weakened-auth", "destructive-migration").
+- If there are no issues, respond with exactly: []`;
+
+/**
+ * Build the semantic system prompt, appending the repo's policy prompt if provided. The policy is
+ * untrusted PR-supplied text, so it is clearly framed as additional repo guidance, not instructions
+ * that can override the reviewer's role.
+ */
+export function buildSemanticPrompt(policy?: string): string {
+  if (!policy || !policy.trim()) return SEMANTIC_SYSTEM_PROMPT;
+  return `${SEMANTIC_SYSTEM_PROMPT}\n\nAdditional repository-specific review policy:\n${policy.trim()}`;
+}
