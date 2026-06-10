@@ -55,6 +55,10 @@ describe("Engine public exports", () => {
       "formatMetaFooter",
       "ENGINE_VERSION",
       "checkSemantic",
+      "resolveExtends",
+      "parsePackRef",
+      "resolveBuiltinPack",
+      "BUILTIN_PACK_NAMES",
     ];
     for (const key of expected) {
       expect(runtimeKeys).toContain(key);

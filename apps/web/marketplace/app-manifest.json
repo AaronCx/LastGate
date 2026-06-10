@@ -1,0 +1,29 @@
+{
+  "name": "LastGate",
+  "url": "https://lastgate.vercel.app",
+  "hook_attributes": {
+    "url": "https://lastgate.vercel.app/api/webhooks/github",
+    "active": true
+  },
+  "redirect_url": "https://lastgate.vercel.app/api/github/app/created",
+  "callback_urls": [
+    "https://lastgate.vercel.app/api/auth/github/callback"
+  ],
+  "setup_url": "https://lastgate.vercel.app/setup",
+  "setup_on_update": true,
+  "public": true,
+  "description": "AI Agent Commit Guardian. Runs a configurable pipeline of safety checks on every push and pull request — secret scanning, dependency CVEs, blocked files, agent thrash detection, and optional LLM semantic review — then posts structured, agent-readable feedback so coding agents can self-correct. Adopt a policy in 60 seconds with shareable packs.",
+  "default_events": [
+    "push",
+    "pull_request",
+    "check_suite",
+    "check_run"
+  ],
+  "default_permissions": {
+    "checks": "write",
+    "contents": "read",
+    "metadata": "read",
+    "pull_requests": "write",
+    "statuses": "write"
+  }
+}

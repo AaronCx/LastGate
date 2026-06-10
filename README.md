@@ -153,6 +153,40 @@ protected_branches:
   - production
 ```
 
+### 2a. Or adopt a policy pack in one line
+
+Don't want to hand-write every check? Extend a shareable **policy pack** — a
+named, versioned bundle of sensible defaults (ESLint's shareable-config model):
+
+```yaml
+# .lastgate.yml
+extends: "@lastgate/agent-safety@1"
+```
+
+`extends` resolves the pack's config as a base; anything you set locally
+overrides it. You can also chain packs — later packs win, and your local file
+always wins over all of them:
+
+```yaml
+extends:
+  - "@lastgate/solo-dev"
+  - "@lastgate/secrets-strict"   # overrides solo-dev where they overlap
+checks:
+  lint:
+    severity: fail                # your override beats every pack
+```
+
+Built-in packs (resolved offline, no install needed):
+
+| Pack | For | What it enforces |
+|---|---|---|
+| `@lastgate/agent-safety` | Repos where AI agents open PRs | Strict secrets, **agent patterns fail**, dangerous-file blocks, deps fail on `high`, semantic review (warn) |
+| `@lastgate/secrets-strict` | Credential-sensitive repos | Secrets block at a **low entropy threshold (3.5)**, entropy findings treated as **critical**, key/credential files blocked |
+| `@lastgate/solo-dev` | Solo devs / prototypes | Lenient — only real secret leaks block, everything else **warns**, build off |
+
+The version suffix (`@1`) pins the pack's major version. Unknown packs and
+circular `extends` chains fail fast with a clear message.
+
 ### 3. Push code
 
 Every commit and PR now gets checked. No configuration required for defaults &mdash; all 8 checks run out of the box.
