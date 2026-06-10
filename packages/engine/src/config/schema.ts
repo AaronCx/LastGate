@@ -72,6 +72,17 @@ const agentPatternsCheckSchema = z.object({
   profile: profileSchema,
 }).optional();
 
+// Semantic review tier (LLM). Opt-in (enabled defaults false); warn-by-default; cost-bounded.
+const semanticCheckSchema = z.object({
+  enabled: z.boolean().default(false),
+  severity: z.enum(["fail", "warn"]).default("warn"),
+  model: z.string().optional(),
+  token_budget: z.number().min(1).max(1_000_000).default(20000),
+  policy: z.string().optional(),
+  run_only_on_clean: z.boolean().default(true),
+  profile: profileSchema,
+}).optional();
+
 const pipelineConfigSchema = z.object({
   checks: z.object({
     secrets: secretsCheckSchema,
@@ -82,6 +93,7 @@ const pipelineConfigSchema = z.object({
     file_patterns: filePatternsCheckSchema,
     commit_message: commitMessageCheckSchema,
     agent_patterns: agentPatternsCheckSchema,
+    semantic: semanticCheckSchema,
   }).optional(),
   // PR-3: top-level path allowlist applied to every content-scanning check.
   allow: z.array(z.string()).optional(),

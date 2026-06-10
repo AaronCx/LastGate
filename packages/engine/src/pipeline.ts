@@ -23,6 +23,7 @@ import { checkDependencies } from "./checks/dependencies";
 import { checkFilePatterns } from "./checks/file-patterns";
 import { checkCommitMessage } from "./checks/commit-message";
 import { checkAgentPatterns } from "./checks/agent-patterns";
+import { checkSemantic, type SemanticContext } from "./checks/semantic";
 import { getDefaultConfig } from "./config/defaults";
 import { DEFAULT_BASELINE_PATH, loadBaseline } from "./config/allowlist";
 
@@ -33,6 +34,11 @@ export interface PipelineInput {
   repoFullName: string;
   config?: Partial<PipelineConfig>;
   previousCommits?: CommitInfo[];
+  /**
+   * Optional injected LLM call for the semantic review tier. The engine never embeds an API client;
+   * callers (CLI / webhook) that own the key supply this. When absent, the semantic check fails open.
+   */
+  semanticReviewCall?: SemanticContext["reviewCall"];
 }
 
 export interface PipelineOptions {
@@ -55,6 +61,8 @@ const DEFAULT_PROFILE_BY_CHECK: Record<keyof PipelineConfig["checks"], CheckProf
   build: "full",
   dependencies: "fast",
   agent_patterns: "fast",
+  // Semantic tier is the expensive LLM pass — only in the full (pre-push / CI) profile.
+  semantic: "full",
 };
 
 function checkRunsInProfile(
@@ -70,7 +78,8 @@ function checkRunsInProfile(
 
 interface CheckEntry {
   key: keyof PipelineConfig["checks"];
-  fn: () => Promise<CheckResult>;
+  /** `priorResults` holds the results of checks that already ran this pass (semantic tier uses it). */
+  fn: (priorResults: CheckResult[]) => Promise<CheckResult>;
 }
 
 /**
@@ -82,7 +91,7 @@ async function buildCheckEntries(
   opts: PipelineOptions,
 ): Promise<{
   entries: CheckEntry[];
-  runEntry: (entry: CheckEntry) => Promise<CheckResult>;
+  runEntry: (entry: CheckEntry, priorResults?: CheckResult[]) => Promise<CheckResult>;
 }> {
   const runProfile: CheckProfile = opts.profile ?? "fast";
   const config = { ...getDefaultConfig(), ...input.config };
@@ -100,6 +109,15 @@ async function buildCheckEntries(
     { key: "lint", fn: () => checkLint(input.files, config.checks.lint!) },
     { key: "dependencies", fn: () => checkDependencies(input.files, config.checks.dependencies!) },
     { key: "build", fn: () => checkBuild(config.checks.build!, input.repoFullName) },
+    // Semantic tier runs LAST so it sees every static result and only spends tokens on clean diffs.
+    {
+      key: "semantic",
+      fn: (priorResults) =>
+        checkSemantic(input.files, config.checks.semantic!, {
+          reviewCall: input.semanticReviewCall,
+          priorResults,
+        }),
+    },
   ];
 
   const entries = all.filter((entry) => {
@@ -108,10 +126,10 @@ async function buildCheckEntries(
     return checkRunsInProfile(entry.key, checkConfig.profile, runProfile);
   });
 
-  const runEntry = async (entry: CheckEntry): Promise<CheckResult> => {
+  const runEntry = async (entry: CheckEntry, priorResults: CheckResult[] = []): Promise<CheckResult> => {
     const start = performance.now();
     try {
-      const result = await entry.fn();
+      const result = await entry.fn(priorResults);
       result.duration_ms = Math.round(performance.now() - start);
       return result;
     } catch (error) {
@@ -138,8 +156,11 @@ export async function* runChecksIterable(
   opts: PipelineOptions = {},
 ): AsyncGenerator<CheckResult> {
   const { entries, runEntry } = await buildCheckEntries(input, opts);
+  const priorResults: CheckResult[] = [];
   for (const entry of entries) {
-    yield await runEntry(entry);
+    const result = await runEntry(entry, priorResults);
+    priorResults.push(result);
+    yield result;
   }
 }
 

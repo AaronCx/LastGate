@@ -39,6 +39,14 @@ export function getDefaultConfig(): PipelineConfig {
         enabled: true,
         severity: "warn",
       },
+      semantic: {
+        // Opt-in: the only check that calls an LLM. Off by default so existing users are never
+        // surprised by token spend, and it fails open even when enabled-without-a-key.
+        enabled: false,
+        severity: "warn",
+        token_budget: 20000,
+        run_only_on_clean: true,
+      },
     },
   };
 }
