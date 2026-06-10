@@ -4,6 +4,8 @@ export { parseConfig } from "./config/parser";
 export { getDefaultConfig } from "./config/defaults";
 export { parseAddedLines } from "./diff/parse";
 export { statusFromFindings } from "./checks/status";
+export { checkSemantic } from "./checks/semantic";
+export type { SemanticReviewCall, SemanticContext, SemanticFinding } from "./checks/semantic";
 export {
   isPathAllowed,
   isLineIgnored,
@@ -25,5 +27,6 @@ export type {
   AddedLine,
   Finding,
   FindingSeverity,
+  SemanticCheckConfig,
 } from "./types";
 export type { PipelineInput } from "./pipeline";

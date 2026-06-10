@@ -54,6 +54,7 @@ describe("Engine public exports", () => {
       "resolveMeta",
       "formatMetaFooter",
       "ENGINE_VERSION",
+      "checkSemantic",
     ];
     for (const key of expected) {
       expect(runtimeKeys).toContain(key);
@@ -135,8 +136,9 @@ describe("Engine type exports compile correctly", () => {
       "file_patterns",
       "commit_message",
       "agent_patterns",
+      "semantic",
     ];
-    expect(types.length).toBe(8);
+    expect(types.length).toBe(9);
   });
 
   test("Annotation type is usable", () => {
