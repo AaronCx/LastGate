@@ -10,6 +10,7 @@ const defaultConfig: AutoFixConfig = {
     trailing_whitespace: true,
     eof_newline: true,
     linter_autofix: true,
+    extract_secrets: false,
   },
   protected_branches: ["main", "production", "release/*"],
   require_approval: false,

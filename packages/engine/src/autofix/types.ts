@@ -6,13 +6,20 @@ export interface AutoFixConfig {
     trailing_whitespace: boolean;
     eof_newline: boolean;
     linter_autofix: boolean;
+    extract_secrets: boolean;
   };
   protected_branches: string[];
   require_approval: boolean;
 }
 
 export interface FixAction {
-  type: "remove_file" | "update_gitignore" | "fix_whitespace" | "fix_eof" | "linter_fix";
+  type:
+    | "remove_file"
+    | "update_gitignore"
+    | "fix_whitespace"
+    | "fix_eof"
+    | "linter_fix"
+    | "extract_secret";
   file: string;
   description: string;
 }

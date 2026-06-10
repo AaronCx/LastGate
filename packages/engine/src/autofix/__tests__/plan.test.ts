@@ -10,6 +10,7 @@ const defaultConfig: AutoFixConfig = {
     trailing_whitespace: true,
     eof_newline: true,
     linter_autofix: false,
+    extract_secrets: false,
   },
   protected_branches: ["main", "production"],
   require_approval: false,
@@ -64,6 +65,7 @@ describe("Auto-Fix Plan Orchestrator", () => {
         trailing_whitespace: false,
         eof_newline: false,
         linter_autofix: false,
+        extract_secrets: false,
       },
     };
     const files = [
