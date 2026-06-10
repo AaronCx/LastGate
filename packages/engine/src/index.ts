@@ -2,6 +2,13 @@ export { runCheckPipeline, runChecksIterable, runSingleCheck, resolveMeta, forma
 export { ENGINE_VERSION } from "./version";
 export { parseConfig } from "./config/parser";
 export { getDefaultConfig } from "./config/defaults";
+export { resolveExtends } from "./config/extends";
+export {
+  parsePackRef,
+  resolveBuiltinPack,
+  BUILTIN_PACK_NAMES,
+} from "./config/packs";
+export type { PolicyPack, PackRef, PackResolver } from "./config/packs";
 export { parseAddedLines } from "./diff/parse";
 export { statusFromFindings } from "./checks/status";
 export { checkSemantic } from "./checks/semantic";
