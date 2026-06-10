@@ -1,3 +1,4 @@
+// Gate verification: lint check must skip on Vercel serverless, not ENOENT.
 import { execFile } from "node:child_process";
 import type { ChangedFile, CheckResult, LintCheckConfig } from "../types";
 import { existsSync } from "fs";
