@@ -7,7 +7,8 @@ export type CheckType =
   | "dependencies"
   | "file_patterns"
   | "commit_message"
-  | "agent_patterns";
+  | "agent_patterns"
+  | "semantic";
 
 export interface CheckResult {
   type: CheckType;
@@ -114,6 +115,7 @@ export interface PipelineConfig {
     file_patterns?: FilePatternCheckConfig;
     commit_message?: CommitMessageCheckConfig;
     agent_patterns?: AgentPatternCheckConfig;
+    semantic?: SemanticCheckConfig;
   };
   /** Top-level path allowlist applied to every content-scanning check. */
   allow?: string[];
@@ -206,5 +208,34 @@ export interface CommitMessageCheckConfig {
 export interface AgentPatternCheckConfig {
   enabled: boolean;
   severity: "fail" | "warn";
+  profile?: CheckProfile;
+}
+
+/**
+ * Semantic review tier — the only check that runs an LLM. It reviews the *added* lines of a
+ * diff against a per-repo policy prompt, catching intent-level regressions that regex can't:
+ * silently swallowed errors, a weakened auth check, a migration that drops a column.
+ *
+ * Cost-bounded (token budget per run), cached by diff hash, and fails OPEN: if no model/API key
+ * is configured or the LLM errors, the check passes with a skipped note. Findings default to
+ * `warn` severity so false positives never hard-block a PR.
+ */
+export interface SemanticCheckConfig {
+  /** Default false — opt-in so existing users are never surprised by LLM calls. */
+  enabled: boolean;
+  /** Default "warn". Even if set to "fail", statusFromFindings caps medium/low at warn. */
+  severity: "fail" | "warn";
+  /** Model identifier passed to the AI client (must exist in ai/cost MODEL_COSTS for accurate cost). */
+  model?: string;
+  /** Hard token budget per run (prompt + completion). Default 20000. */
+  token_budget?: number;
+  /** Per-repo policy prompt describing what to flag. Inlined into the system prompt. */
+  policy?: string;
+  /**
+   * When true (default), the check short-circuits to "pass" unless every prior static tier passed —
+   * the semantic tier only spends tokens on diffs that already cleared the cheap checks.
+   */
+  run_only_on_clean?: boolean;
+  /** Override which run profile this check participates in. Default: "full". */
   profile?: CheckProfile;
 }
