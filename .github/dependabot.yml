@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "/apps/web"
+      - "/extensions/vscode"
+      - "/packages/cli"
+      - "/packages/engine"
+      - "/packages/mcp-server"
+      - "/packages/sdk"
+    schedule:
+      interval: "weekly"
+    groups:
+      npm:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
