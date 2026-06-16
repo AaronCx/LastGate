@@ -7,7 +7,7 @@
     },
     "apps/web": {
       "name": "@lastgate/web",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "@lastgate/engine": "workspace:*",
         "@octokit/auth-app": "8.2.0",
@@ -33,7 +33,7 @@
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
         "autoprefixer": "^10.4.0",
-        "happy-dom": "20.8.4",
+        "happy-dom": "20.8.9",
         "postcss": "^8.4.0",
         "tailwindcss": "^3.4.0",
         "typescript": "^5.7.0",
@@ -41,7 +41,7 @@
     },
     "packages/cli": {
       "name": "lastgate",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "bin": {
         "lastgate": "bin/lastgate.ts",
       },
@@ -58,7 +58,7 @@
     },
     "packages/engine": {
       "name": "@lastgate/engine",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "yaml": "^2.7.0",
         "zod": "^3.24.0",
@@ -70,7 +70,7 @@
     },
     "packages/mcp-server": {
       "name": "@lastgate/mcp-server",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "bin": {
         "lastgate-mcp": "bin/lastgate-mcp.ts",
       },
@@ -81,7 +81,7 @@
     },
     "packages/sdk": {
       "name": "@lastgate/sdk",
-      "version": "0.2.0",
+      "version": "0.3.0",
     },
   },
   "packages": {
@@ -539,7 +539,7 @@
 
     "gopd": ["gopd@1.2.0", "", {}, "sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg=="],
 
-    "happy-dom": ["happy-dom@20.8.4", "", { "dependencies": { "@types/node": ">=20.0.0", "@types/whatwg-mimetype": "^3.0.2", "@types/ws": "^8.18.1", "entities": "^7.0.1", "whatwg-mimetype": "^3.0.0", "ws": "^8.18.3" } }, "sha512-GKhjq4OQCYB4VLFBzv8mmccUadwlAusOZOI7hC1D9xDIT5HhzkJK17c4el2f6R6C715P9xB4uiMxeKUa2nHMwQ=="],
+    "happy-dom": ["happy-dom@20.8.9", "", { "dependencies": { "@types/node": ">=20.0.0", "@types/whatwg-mimetype": "^3.0.2", "@types/ws": "^8.18.1", "entities": "^7.0.1", "whatwg-mimetype": "^3.0.0", "ws": "^8.18.3" } }, "sha512-Tz23LR9T9jOGVZm2x1EPdXqwA37G/owYMxRwU0E4miurAtFsPMQ1d2Jc2okUaSjZqAFz2oEn3FLXC5a0a+siyA=="],
 
     "has-symbols": ["has-symbols@1.1.0", "", {}, "sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ=="],
 
