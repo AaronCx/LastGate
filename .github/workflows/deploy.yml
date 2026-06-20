@@ -27,7 +27,7 @@ jobs:
           fi
 
       - if: steps.guard.outputs.ready == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # `vercel build` runs the project's bun-based install + build commands,
       # so bun must be on PATH on the runner.
