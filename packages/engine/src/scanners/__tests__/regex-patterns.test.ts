@@ -91,7 +91,7 @@ describe("Regex Patterns", () => {
 
   test("MongoDB connection string matches", () => {
     const p = SECRET_PATTERNS.find(p => p.name === "MongoDB Connection String")!;
-    expect(p.pattern.test("mongodb+srv://user:pass@cluster.mongodb.net/db")).toBe(true);
+    expect(p.pattern.test("mongodb+srv://cluster.example.invalid/db")).toBe(true);
   });
 
   // Generic patterns
