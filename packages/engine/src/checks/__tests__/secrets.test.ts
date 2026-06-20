@@ -73,7 +73,10 @@ describe("Secret Scanner", () => {
   });
 
   test("detects Supabase JWT", async () => {
-    const files = [file("src/config.ts", 'SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlc3QiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjE2MjM5MDIyLCJleHAiOjE5MzE4MTUwMjJ9.abcdefghijklmnopqrstuvwxyz123456')];
+    // Synthetic fixture: standard JWT header + redacted payload/signature so it
+    // exercises the Supabase JWT regex without embedding a service_role token that
+    // provider secret-scanners flag as a real credential.
+    const files = [file("src/config.ts", 'SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.REDACTED_TEST_PAYLOAD.REDACTED_TEST_SIGNATURE')];
     const result = await checkSecrets(files, defaultConfig);
     expect(result.status).toBe("fail");
   });
