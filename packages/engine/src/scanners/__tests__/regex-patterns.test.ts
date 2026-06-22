@@ -118,7 +118,9 @@ describe("Regex Patterns", () => {
   // Supabase JWT
   test("Supabase JWT matches standard format", () => {
     const p = SECRET_PATTERNS.find(p => p.name === "Supabase JWT")!;
-    const jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+    // Synthetic value: real header literal required by the regex, followed by
+    // redacted placeholders so no token-shaped secret is embedded in source.
+    const jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.REDACTED_TEST_PAYLOAD.REDACTED_TEST_SIGNATURE";
     expect(p.pattern.test(jwt)).toBe(true);
   });
 
