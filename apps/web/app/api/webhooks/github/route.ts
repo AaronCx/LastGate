@@ -494,16 +494,22 @@ async function handleCheckEvent(
   const protectedBranches = (repoConfig as Record<string, unknown>)?.protected_branches as string[] | undefined;
   const isProtectedBranch = protectedBranches?.includes(branch) || branch === "main" || branch === "master";
 
-  if (event === "push" && isProtectedBranch && pipelineResult.hasFailures) {
+  const urgent = event === "push" && isProtectedBranch && pipelineResult.hasFailures;
+  if (urgent) {
     // Post warning comment on the commit itself
     const warningBody = buildDirectPushWarning(branch, pipelineResult);
     await postCommitComment(octokit, repoOwner, repoName, headSha, warningBody);
-
-    // Send urgent notification
-    await dispatchNotification(repoId, pipelineResult, { urgent: true });
-
     console.log(`[webhook] Direct push to protected branch ${branch} with failures — posted warning`);
   }
+
+  // Dispatch configured Slack/Discord notifications (real send via the engine).
+  // Urgent protected-branch failures bypass throttle + quiet hours.
+  await dispatchNotification(repoId, pipelineResult, {
+    repoFullName,
+    commitSha: headSha,
+    branch,
+    urgent,
+  });
 
   return NextResponse.json({
     ok: true,
