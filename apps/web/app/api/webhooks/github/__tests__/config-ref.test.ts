@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { gateConfigRef } from "../route";
+import { gateConfigRef } from "@/lib/gate-config-ref";
 
 // C1: the gate config must come from the base (target) branch on a PR, so a PR
 // can't ship a permissive .lastgate.yml to disable the gate against itself.

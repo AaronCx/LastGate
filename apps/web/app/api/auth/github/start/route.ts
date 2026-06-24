@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
+import { OAUTH_STATE_COOKIE } from "@/lib/oauth";
 
 export const dynamic = "force-dynamic";
-
-export const OAUTH_STATE_COOKIE = "lastgate_oauth_state";
 
 /**
  * Begin the GitHub OAuth flow. Generates a CSRF `state` nonce, stores it in an
