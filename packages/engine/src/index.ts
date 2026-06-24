@@ -37,3 +37,14 @@ export type {
   SemanticCheckConfig,
 } from "./types";
 export type { PipelineInput } from "./pipeline";
+
+// AI fix-suggestion pipeline (opt-in; the caller injects the LLM call).
+export { generateFixSuggestions, getSurroundingLines } from "./ai/suggest-fix";
+export { estimateCost, isKnownModel, isWithinBudget, estimateTokenCount } from "./ai/cost";
+export { clearCache, getCacheSize } from "./ai/cache";
+export type {
+  FixSuggestion,
+  FixSuggestionRequest,
+  AiSuggestionsConfig,
+  AiUsageRecord,
+} from "./ai/types";

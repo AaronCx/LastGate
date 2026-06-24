@@ -35,7 +35,7 @@ export async function generateFixSuggestions(
     if (!isWithinBudget(totalTokens, config.token_budget)) break;
 
     // Check cache
-    const cacheKey = getCacheKey(finding.checkType, finding.finding.file, finding.finding.message);
+    const cacheKey = getCacheKey(finding.checkType, finding.finding.file, finding.finding.line, finding.finding.message);
     const cached = getCachedSuggestion(cacheKey);
     if (cached) {
       suggestions.set(cacheKey, cached);
@@ -77,7 +77,10 @@ Error details: ${finding.errorDetails}`;
       totalCompletionTokens += response.completionTokens;
       totalTokens += response.promptTokens + response.completionTokens;
     } catch (err) {
-      // Skip failed suggestions
+      // Record the failure instead of swallowing it silently.
+      console.error(
+        `[ai] fix suggestion failed for ${finding.finding.file}${finding.finding.line ? `:${finding.finding.line}` : ""}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 

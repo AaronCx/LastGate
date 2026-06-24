@@ -11,11 +11,21 @@ export function estimateCost(
   promptTokens: number,
   completionTokens: number
 ): number {
-  const costs = MODEL_COSTS[model] || MODEL_COSTS["gpt-4o-mini"];
+  const costs = MODEL_COSTS[model];
+  if (!costs) {
+    // Don't silently report another model's (cheapest) price as if it were real.
+    console.warn(`[ai] unknown model "${model}" — cost estimate unavailable (reporting 0).`);
+    return 0;
+  }
   return (
     (promptTokens / 1000) * costs.input +
     (completionTokens / 1000) * costs.output
   );
+}
+
+/** Whether we have real pricing for this model. */
+export function isKnownModel(model: string): boolean {
+  return model in MODEL_COSTS;
 }
 
 export function isWithinBudget(
