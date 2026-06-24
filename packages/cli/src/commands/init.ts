@@ -1,6 +1,7 @@
 import { Command } from "commander";
-import { resolve } from "path";
-import { existsSync } from "fs";
+import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { success, warning, bold, dim } from "../output/colors";
 
 const DEFAULT_CONFIG = `# LastGate Configuration
@@ -55,7 +56,7 @@ async function runInit(): Promise<void> {
     }
   }
 
-  await Bun.write(configPath, DEFAULT_CONFIG);
+  await writeFile(configPath, DEFAULT_CONFIG);
 
   console.log("");
   console.log(success("✓") + bold(" LastGate initialized!"));
