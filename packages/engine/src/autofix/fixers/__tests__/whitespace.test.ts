@@ -36,7 +36,7 @@ describe("Whitespace Fixer", () => {
 
   test("only changed files are checked (deleted files skipped)", () => {
     const actions = findTrailingWhitespace([
-      { path: "src/d.ts", content: "line  \n", status: "deleted" },
+      { path: "src/d.ts", content: "line  \n", status: "removed" },
     ]);
     expect(actions.length).toBe(0);
   });
@@ -75,7 +75,7 @@ describe("EOF Newline Fixer", () => {
 
   test("deleted files are skipped", () => {
     const actions = findMissingEofNewline([
-      { path: "src/d.ts", content: "no newline", status: "deleted" },
+      { path: "src/d.ts", content: "no newline", status: "removed" },
     ]);
     expect(actions.length).toBe(0);
   });

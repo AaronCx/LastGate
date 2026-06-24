@@ -15,6 +15,9 @@ export {
   type SecretExtraction,
 } from "./fixers/secrets";
 export { findLinterAutofixable } from "./fixers/lint";
+export { fixTrailingWhitespace, fixEofNewline } from "./fixers/whitespace";
+export { generateGitignoreUpdates } from "./fixers/gitignore";
+export { isProtectedBranch, canAutoFix } from "./safety";
 
 export interface PlanOptions {
   currentGitignore?: string;

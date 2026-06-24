@@ -46,9 +46,20 @@ describe("Remove Files Fixer", () => {
     expect(actions.length).toBe(0);
   });
 
-  test("deleted files are skipped", () => {
-    const actions = findBlockedFiles([{ path: ".env", status: "deleted" }]);
+  test("removed files are skipped", () => {
+    const actions = findBlockedFiles([{ path: ".env", status: "removed" }]);
     expect(actions.length).toBe(0);
+  });
+
+  test("does NOT remove committed env templates (.env.example/.sample/.template)", () => {
+    for (const path of [".env.example", ".env.sample", "config/.env.template"]) {
+      expect(findBlockedFiles([{ path, status: "added" }]).length).toBe(0);
+    }
+  });
+
+  test("removes nested .env files (config/.env), not just root", () => {
+    const actions = findBlockedFiles([{ path: "config/.env", status: "added" }]);
+    expect(actions.length).toBe(1);
   });
 
   test("multiple blocked files in one commit are all found", () => {
