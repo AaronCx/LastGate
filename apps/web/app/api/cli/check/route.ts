@@ -4,6 +4,7 @@ import { runCheckPipeline } from "@lastgate/engine";
 import { parseAddedLines } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo } from "@lastgate/engine";
 import { repoAccessibleToUser } from "@/lib/ownership";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,11 @@ export async function POST(request: NextRequest) {
         { error: "Invalid API key" },
         { status: 401 }
       );
+    }
+
+    // Bound the per-key request rate — each call runs a full engine pipeline.
+    if (!(await rateLimit(`cli_check:${keyRecord.id}`, 60, 60))) {
+      return tooManyRequests();
     }
 
     const body = await request.json();

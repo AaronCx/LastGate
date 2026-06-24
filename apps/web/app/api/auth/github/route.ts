@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createSession, sessionCookieOptions } from "@/lib/auth";
 import { encryptSecret, safeEqual } from "@/lib/crypto";
 import { OAUTH_STATE_COOKIE } from "@/app/api/auth/github/start/route";
+import { rateLimit, tooManyRequests, clientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,11 @@ export async function POST(request: NextRequest) {
         { error: "Authorization code is required" },
         { status: 400 }
       );
+    }
+
+    // Bound the per-IP exchange rate (proxies GitHub's token endpoint).
+    if (!(await rateLimit(`oauth:${clientIp(request)}`, 30, 60))) {
+      return tooManyRequests();
     }
 
     // CSRF: the state echoed back by GitHub must match the nonce we set in an
