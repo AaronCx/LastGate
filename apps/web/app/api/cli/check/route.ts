@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { runCheckPipeline } from "@lastgate/engine";
 import { parseAddedLines } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo } from "@lastgate/engine";
+import { repoAccessibleToUser } from "@/lib/ownership";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,16 @@ export async function POST(request: NextRequest) {
       .select("id, config")
       .eq("full_name", repo)
       .single();
+
+    // If the repo is registered, the API key's owner must be able to access it —
+    // otherwise any valid key could run checks against, and write check_runs into,
+    // another tenant's repo. (Unregistered repos run statelessly with no repo_id.)
+    if (repoRecord && !(await repoAccessibleToUser(keyRecord.user_id, repoRecord.id))) {
+      return NextResponse.json(
+        { error: "This API key cannot access the specified repo" },
+        { status: 403 },
+      );
+    }
 
     // Build changed files from CLI input. `content` is the real post-change file; `patch` is the
     // raw unified diff. addedLines is derived from the patch so secrets/lint scan only added lines

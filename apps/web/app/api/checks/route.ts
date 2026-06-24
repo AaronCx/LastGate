@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { accessibleRepoIds } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +20,17 @@ export async function GET(request: NextRequest) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 
+    // Scope to the caller's repos — GET previously returned every tenant's
+    // check history (commit shas, messages, authors, branches).
+    const repoIds = await accessibleRepoIds(session);
+    if (repoIds.length === 0) {
+      return NextResponse.json({ data: [], pagination: { page, limit, total: 0, totalPages: 0 } });
+    }
+
     let query = supabase
       .from("check_runs")
       .select("*", { count: "exact" })
+      .in("repo_id", repoIds)
       .order("created_at", { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
 

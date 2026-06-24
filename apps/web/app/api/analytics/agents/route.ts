@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { accessibleRepoIds } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
+    // Was completely unauthenticated and aggregated every tenant's check_runs.
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const supabase = createServerSupabaseClient();
     const { searchParams } = new URL(request.url);
 
@@ -14,10 +20,13 @@ export async function GET(request: NextRequest) {
     since.setDate(since.getDate() - daysBack);
     const sinceISO = since.toISOString();
 
-    // Fetch agent check runs
+    const repoIds = await accessibleRepoIds(session);
+
+    // Fetch agent check runs (scoped to the caller's repos)
     const { data: runs, error: runsError } = await supabase
       .from("check_runs")
       .select("id, repo_id, status, created_at, commit_author, is_agent_commit, total_checks, failed_checks")
+      .in("repo_id", repoIds.length > 0 ? repoIds : ["00000000-0000-0000-0000-000000000000"])
       .gte("created_at", sinceISO)
       .order("created_at", { ascending: true });
 
