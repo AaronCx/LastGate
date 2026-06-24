@@ -10,6 +10,7 @@ import { configureBranchProtection } from "@/lib/github/branch-protection";
 import { parseAddedLines, parseConfig, runCheckPipeline } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo, PipelineConfig } from "@lastgate/engine";
 import { gateConfigRef } from "@/lib/gate-config-ref";
+import { installRepoList } from "@/lib/webhook-events";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Allow up to 60s for pipeline processing
@@ -196,6 +197,13 @@ export async function POST(request: NextRequest) {
       return await handleCheckEvent(event, payload, supabase);
     }
 
+    // On install (or repos added to an install), auto-configure branch protection
+    // so the LastGate check is REQUIRED — the README's "failures block the merge"
+    // promise, which previously never fired (configureBranchProtection was dead).
+    if (event === "installation" || event === "installation_repositories") {
+      return await handleInstallationEvent(event, payload);
+    }
+
     console.log(`[webhook] Ignoring event="${event}"`);
     return NextResponse.json({ ok: true, event, action: "ignored" });
   } catch (error) {
@@ -205,6 +213,41 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function handleInstallationEvent(
+  event: string,
+  payload: Record<string, unknown>,
+) {
+  const installation = payload.installation as Record<string, unknown> | undefined;
+  const installationId = installation?.id as number | undefined;
+  if (!installationId) {
+    return NextResponse.json({ ok: true, action: "no-installation" });
+  }
+
+  const repos = installRepoList(event, payload);
+  if (repos.length === 0) {
+    return NextResponse.json({ ok: true, action: "no-repos" });
+  }
+
+  const octokit = await getInstallationOctokit(installationId);
+  let configured = 0;
+  for (const fullName of repos) {
+    const [owner, repo] = fullName.split("/");
+    if (!owner || !repo) continue;
+    let defaultBranch = "main";
+    try {
+      const { data } = await octokit.request("GET /repos/{owner}/{repo}", { owner, repo });
+      defaultBranch = ((data as Record<string, unknown>).default_branch as string) || "main";
+    } catch {
+      // fall back to main
+    }
+    // octokit shape is request-compatible; configureBranchProtection only uses .request
+    await configureBranchProtection(octokit as never, owner, repo, defaultBranch);
+    configured++;
+  }
+  console.log(`[webhook] Configured branch protection on ${configured} repo(s)`);
+  return NextResponse.json({ ok: true, event, configured });
 }
 
 async function handleCheckEvent(
