@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { canAccessRepo } from "@/lib/ownership";
 import { isSafeWebhookUrl } from "@/lib/webhook-url";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { buildSlackMessage, sendSlackNotification } from "@lastgate/engine/src/notifications/slack";
 import { buildDiscordEmbed, sendDiscordNotification } from "@lastgate/engine/src/notifications/discord";
 import type { NotificationPayload } from "@lastgate/engine/src/notifications/types";
@@ -15,6 +16,11 @@ export async function POST(request: NextRequest) {
     // server POST to its stored webhook_url — a blind SSRF + reachability oracle.
     const session = await requireSession(request);
     if (!session) return unauthorizedResponse();
+
+    // Bound test-send abuse (each sends an outbound request).
+    if (!(await rateLimit(`notif_test:${session.id}`, 15, 60))) {
+      return tooManyRequests();
+    }
 
     const supabase = createServerSupabaseClient();
     const body = await request.json();
