@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import pkg from "../package.json";
 import { registerCheckCommand } from "./commands/check";
 import { registerInitCommand } from "./commands/init";
 import { registerLoginCommand } from "./commands/login";
@@ -13,7 +14,9 @@ const program = new Command();
 program
   .name("lastgate")
   .description("AI agent commit guardian — pre-flight checks for AI-generated code")
-  .version("0.1.0");
+  // Single-source the version from package.json (was hardcoded 0.1.0, two
+  // minors behind the package's 0.3.0).
+  .version(pkg.version);
 
 registerCheckCommand(program);
 registerInitCommand(program);

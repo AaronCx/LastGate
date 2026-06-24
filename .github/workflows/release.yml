@@ -23,6 +23,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      # Gate the release on tests — the CLI was published with no test run.
+      - name: Test engine
+        run: cd packages/engine && bun test
+      - name: Test CLI
+        run: cd packages/cli && bun test
+
       - name: Build engine
         run: cd packages/engine && bun run build
 
@@ -34,6 +40,19 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+
+      # Smoke test the ACTUAL tarball in a clean dir under node — would have
+      # caught the workspace:* engine dep, the .ts bin, and the bun-only shebang.
+      - name: Smoke test the packaged CLI
+        run: |
+          cd packages/cli
+          TARBALL=$(npm pack | tail -1)
+          mkdir -p /tmp/cli-smoke
+          cd /tmp/cli-smoke && npm init -y >/dev/null 2>&1
+          npm install "$GITHUB_WORKSPACE/packages/cli/$TARBALL"
+          VERSION=$(node ./node_modules/.bin/lastgate --version)
+          echo "Packaged CLI version: $VERSION"
+          test -n "$VERSION"
 
       - name: Publish to npm
         run: cd packages/cli && npm publish --access public
