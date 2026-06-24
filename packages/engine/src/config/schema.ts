@@ -5,6 +5,25 @@ const severitySchema = z.enum(["fail", "warn"]).optional();
 const findingSeveritySchema = z.enum(["critical", "high", "medium", "low"]).optional();
 const profileSchema = z.enum(["fast", "full"]).optional();
 
+// An allow glob matches "everything" when, after stripping wildcards and path
+// separators, no concrete literal remains — e.g. a lone "**", a double-star
+// followed by "/*", a single "*", etc. A single such entry silenced both
+// secret-scanning and dangerous-file blocking for the entire diff, and was
+// settable from a PR's own .lastgate.yml. Allow lists must name a concrete
+// path or prefix.
+function isUnboundedAllowGlob(glob: string): boolean {
+  return glob.trim().replace(/[*?/.\\]/g, "").length === 0;
+}
+
+const allowGlobArray = z
+  .array(
+    z.string().refine((g) => !isUnboundedAllowGlob(g), {
+      message:
+        "allow glob is too broad (it matches every path); name a concrete path or prefix instead of '**'",
+    }),
+  )
+  .optional();
+
 const secretsCheckSchema = z.object({
   enabled: z.boolean().default(true),
   severity: severitySchema,
@@ -12,7 +31,7 @@ const secretsCheckSchema = z.object({
   entropy_threshold: z.number().min(0).max(10).optional(),
   entropy_severity: findingSeveritySchema,
   // PR-3: per-check path allowlist (merged with the top-level `allow`).
-  allow: z.array(z.string()).optional(),
+  allow: allowGlobArray,
   // PR-4: run profile override.
   profile: profileSchema,
   custom_patterns: z.array(z.object({
@@ -37,7 +56,10 @@ const lintCheckSchema = z.object({
 }).optional();
 
 const buildCheckSchema = z.object({
-  enabled: z.boolean().default(true),
+  // Off by default (matches getDefaultConfig + the policy packs). The build
+  // verifier is full-profile-only and delegates to CI on serverless, so it must
+  // not silently turn on just because a user sets a sibling field like `command`.
+  enabled: z.boolean().default(false),
   severity: severitySchema,
   command: z.string().optional(),
   timeout: z.number().min(1).max(3600).default(120),
@@ -55,7 +77,7 @@ const filePatternsCheckSchema = z.object({
   enabled: z.boolean().default(true),
   severity: severitySchema,
   block: z.array(z.string()).optional(),
-  allow: z.array(z.string()).optional(),
+  allow: allowGlobArray,
   profile: profileSchema,
 }).optional();
 
@@ -96,7 +118,7 @@ const pipelineConfigSchema = z.object({
     semantic: semanticCheckSchema,
   }).optional(),
   // PR-3: top-level path allowlist applied to every content-scanning check.
-  allow: z.array(z.string()).optional(),
+  allow: allowGlobArray,
   // PR-3: path to the baseline file holding accepted finding fingerprints.
   baseline: z.string().optional(),
   protected_branches: z.array(z.string()).optional(),
