@@ -50,4 +50,27 @@ describe("parseUnifiedDiff", () => {
   it("returns [] for empty input", () => {
     expect(parseUnifiedDiff("")).toEqual([]);
   });
+
+  it("does NOT drop a deleted line whose content starts with '-- ' (header-guard evasion)", () => {
+    const d = buildUnifiedDiff([
+      {
+        path: "schema.sql",
+        patch: ["@@ -1,2 +1,1 @@", "-- legacy bootstrap comment", "-SELECT 2;", "+SELECT 3;"].join("\n"),
+      },
+    ]);
+    const lines = parseUnifiedDiff(d)[0].lines;
+    const removes = lines.filter((l) => l.type === "remove");
+    expect(removes.length).toBe(2); // the comment deletion is NOT swallowed
+    expect(removes[0].content).toBe("- legacy bootstrap comment");
+    expect(removes[1].lineNumber).toBe(2); // old-side numbering stays correct
+  });
+});
+
+describe("buildUnifiedDiff size cap", () => {
+  it("truncates an oversized diff (storage-amplification guard)", () => {
+    const huge = `@@ -1,1 +1,1 @@\n+${"x".repeat(400 * 1024)}`;
+    const out = buildUnifiedDiff([{ path: "big.txt", patch: huge }]);
+    expect(out.length).toBeLessThan(300 * 1024);
+    expect(out).toContain("[diff truncated]");
+  });
 });
