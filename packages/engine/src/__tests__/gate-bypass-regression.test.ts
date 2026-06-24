@@ -3,7 +3,14 @@ import { runCheckPipeline, type PipelineInput } from "../pipeline";
 import { parseConfig } from "../config/parser";
 import { parseAddedLines } from "../diff/parse";
 import { checkFilePatterns } from "../checks/file-patterns";
+import { checkSecrets } from "../checks/secrets";
 import type { ChangedFile, PipelineConfig } from "../types";
+
+function entropyFindings(details: Record<string, unknown>): Array<{ pattern: string }> {
+  return (details.findings as Array<{ pattern: string }>).filter(
+    (f) => f.pattern === "High Entropy String",
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Adversarial gate-bypass corpus.
@@ -112,6 +119,36 @@ describe("diff parser: an added line starting with '++ ' / '-- ' cannot truncate
     const texts = added.map((a) => a.text);
     expect(texts).toContain('const key = "AKIAIOSFODNN7EXAMPLE";');
     expect(texts.some((t) => t.includes("another added line"))).toBe(true);
+  });
+});
+
+describe("entropy: hex and base64 secrets must clear the charset-scaled floor", () => {
+  const cfg = { enabled: true as const, severity: "fail" as const };
+
+  // Neutral variable names so the named generic patterns (password/secret/
+  // token/api_key) don't fire and suppress the entropy path we're exercising.
+  it("flags a long high-entropy hex token (default 4.8 could never fire on hex)", async () => {
+    const res = await checkSecrets(
+      [file("k.ts", 'const blob = "a3f5c8e1b2d4906f7a8c5e3b1d9f02468ace1357";')],
+      cfg,
+    );
+    expect(entropyFindings(res.details).length).toBeGreaterThan(0);
+  });
+
+  it("flags an AWS-secret-shaped base64 token (~4.71, under the old 4.8 floor)", async () => {
+    const res = await checkSecrets(
+      [file("k.ts", 'const blob = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";')],
+      cfg,
+    );
+    expect(entropyFindings(res.details).length).toBeGreaterThan(0);
+  });
+
+  it("does NOT flag a low-entropy long hex string (repeated chars)", async () => {
+    const res = await checkSecrets(
+      [file("k.ts", 'const x = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";')],
+      cfg,
+    );
+    expect(entropyFindings(res.details).length).toBe(0);
   });
 });
 

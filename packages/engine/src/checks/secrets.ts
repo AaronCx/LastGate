@@ -8,6 +8,28 @@ import { fingerprint, isLineIgnored, isPathAllowed } from "../config/allowlist";
 const DEFAULT_ENTROPY_THRESHOLD = 4.8;
 const DEFAULT_ENTROPY_SEVERITY: FindingSeverity = "medium";
 
+/**
+ * Effective entropy floor for a token, scaled to its character set. The default
+ * threshold (4.8) exceeds the maximum Shannon entropy of a hex string
+ * (log2(16) = 4.0), so a pure-hex secret — a hex API key or a 32+ char token —
+ * could NEVER trip the entropy fallback; a genuine 40-char AWS secret access
+ * key (base64-ish) scores ~4.71, also under 4.8. Lower the floor for those two
+ * charset classes so real secrets are caught. Short hex (colors, sha fragments)
+ * stays under the 20-char length gate in extractTokens. The floor is capped by
+ * the configured threshold so a stricter user/pack setting still wins.
+ */
+function effectiveEntropyFloor(token: string, configured: number): number {
+  // Pure hex, long enough to be key-like (max entropy is only 4.0).
+  if (/^[0-9a-fA-F]+$/.test(token)) {
+    return token.length >= 32 ? Math.min(configured, 3.0) : configured;
+  }
+  // base64 / base64url alphabet (also the shape of an AWS secret access key).
+  if (/^[A-Za-z0-9+/=_-]+$/.test(token) && token.length >= 32) {
+    return Math.min(configured, 4.0);
+  }
+  return configured;
+}
+
 // Guards for untrusted custom patterns sourced from the PR's .lastgate.yml.
 const MAX_CUSTOM_PATTERN_LENGTH = 256;
 const MAX_CUSTOM_PATTERN_LINE_LENGTH = 4096;
@@ -149,7 +171,7 @@ export async function checkSecrets(
         const tokens = extractTokens(line);
         for (const token of tokens) {
           const entropy = calculateEntropy(token);
-          if (entropy > entropyThreshold) {
+          if (entropy > effectiveEntropyFloor(token, entropyThreshold)) {
             const alreadyFound = findings.some(
               (f) => f.file === file.path && f.line === lineNum,
             );
