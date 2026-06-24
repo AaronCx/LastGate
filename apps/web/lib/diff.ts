@@ -14,6 +14,11 @@ export interface ParsedFileDiff {
  * through parseUnifiedDiff. Files with no patch (content-only producers) are
  * skipped.
  */
+// Cap the stored diff — the CLI builds it from caller-controlled input, so an
+// uncapped TEXT column is a storage-amplification vector and bloats every detail
+// fetch + client parse.
+const MAX_DIFF_CHARS = 256 * 1024;
+
 export function buildUnifiedDiff(
   files: Array<{ path?: string; filename?: string; patch?: string }>,
 ): string {
@@ -23,7 +28,8 @@ export function buildUnifiedDiff(
     if (!path || !f.patch) continue;
     parts.push(`diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n${f.patch}`);
   }
-  return parts.join("\n");
+  const out = parts.join("\n");
+  return out.length > MAX_DIFF_CHARS ? `${out.slice(0, MAX_DIFF_CHARS)}\n... [diff truncated]` : out;
 }
 
 /** Parse a stored unified diff into per-file line arrays for <DiffViewer>. */
@@ -33,6 +39,7 @@ export function parseUnifiedDiff(diff: string): ParsedFileDiff[] {
   let current: ParsedFileDiff | null = null;
   let newLine = 0;
   let oldLine = 0;
+  let inHunk = false;
 
   const newFile = (name: string): ParsedFileDiff => {
     const f: ParsedFileDiff = { filename: name, lines: [] };
@@ -44,24 +51,33 @@ export function parseUnifiedDiff(diff: string): ParsedFileDiff[] {
     if (line.startsWith("diff --git")) {
       const m = line.match(/ b\/(.+)$/);
       current = newFile(m ? m[1] : "file");
+      inHunk = false;
       continue;
     }
-    if (line.startsWith("+++ b/")) {
-      const name = line.slice(6);
-      if (current) current.filename = name;
-      else current = newFile(name);
-      continue;
-    }
-    if (line.startsWith("--- ") || line.startsWith("index ")) continue;
 
     const hunk = line.match(/^@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/);
     if (hunk) {
       if (!current) current = newFile("changed");
       oldLine = Number(hunk[1]);
       newLine = Number(hunk[2]);
+      inHunk = true;
       continue;
     }
-    if (!current) continue; // preamble before any file/hunk
+
+    // File headers (---/+++/index/mode) only appear BEFORE the first hunk of a
+    // file. Inside a hunk body, classify by the leading +/-/space — otherwise a
+    // DELETED line whose content starts with "-- " (e.g. a SQL/Lua comment, raw
+    // diff line "--- ...") would be mistaken for a header and silently dropped.
+    if (!inHunk) {
+      if (line.startsWith("+++ b/")) {
+        const name = line.slice(6);
+        if (current) current.filename = name;
+        else current = newFile(name);
+      }
+      continue; // skip ---, index, mode, and any other pre-hunk metadata
+    }
+
+    if (!current) continue;
 
     const c = line[0];
     if (c === "+") {
