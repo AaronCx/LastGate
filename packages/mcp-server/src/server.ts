@@ -144,11 +144,11 @@ export function createServer() {
         }
 
         try {
-          const result = await apiFetch("/api/checks", { repo, limit: "10" });
-          const runs = (result.data || []).map((r: any) => ({
-            status: r.conclusion || r.status || "unknown",
-            commit_sha: r.commit_sha || r.head_sha || "",
-            created_at: r.created_at || "",
+          const result = await apiFetch("/api/cli/checks", { repo, limit: "10" });
+          const runs = (result.entries || []).map((r: any) => ({
+            status: r.status || "unknown",
+            commit_sha: r.commitHash || "",
+            created_at: r.timestamp || "",
           }));
           return formatStatusResult(repo, runs);
         } catch (error) {
@@ -183,17 +183,17 @@ export function createServer() {
         const limit = Math.min(Math.max((args?.limit as number) || 10, 1), 50);
 
         try {
-          const result = await apiFetch("/api/checks", { repo, limit: String(limit) });
-          const runs = (result.data || []).map((r: any) => ({
+          const result = await apiFetch("/api/cli/checks", { repo, limit: String(limit) });
+          const runs = (result.entries || []).map((r: any) => ({
             id: r.id || "",
-            status: r.conclusion || r.status || "unknown",
-            commit_sha: r.commit_sha || r.head_sha || "",
-            commit_message: r.commit_message || "",
-            author: r.author || r.sender_login || "",
-            checks_passed: r.checks_passed ?? 0,
-            checks_failed: r.checks_failed ?? 0,
-            created_at: r.created_at || "",
-            duration_ms: r.duration_ms,
+            status: r.status || "unknown",
+            commit_sha: r.commitHash || "",
+            commit_message: r.commitMessage || "",
+            author: r.author || "",
+            checks_passed: r.checksPassed ?? 0,
+            checks_failed: r.failures ?? 0,
+            created_at: r.timestamp || "",
+            duration_ms: undefined,
           }));
           return formatHistoryResult(repo, runs);
         } catch (error) {

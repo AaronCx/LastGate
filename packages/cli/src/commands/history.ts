@@ -71,7 +71,9 @@ async function runHistory(options: HistoryOptions): Promise<void> {
     params.set("limit", options.limit);
     if (options.repo) params.set("repo", options.repo);
 
-    const url = `${API_BASE}/api/checks?${params.toString()}`;
+    // Bearer-authed endpoint that returns the { entries } shape (the old
+    // /api/checks is cookie-only, so this always 401'd).
+    const url = `${API_BASE}/api/cli/checks?${params.toString()}`;
 
     const response = await fetch(url, {
       headers: {
