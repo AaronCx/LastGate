@@ -72,6 +72,28 @@ describe("C1/allow: an unbounded allow glob can no longer neutralize the gate", 
   });
 });
 
+describe("extends: schema defaults must not clobber a pack value the user never set", () => {
+  it("keeps the pack's commit_message.enabled=false when the user only changes severity", () => {
+    // solo-dev disables commit_message; the user tweaks an unrelated sibling field.
+    const cfg = parseConfig(
+      ["extends:", "  - solo-dev", "checks:", "  commit_message:", "    severity: fail"].join("\n"),
+    );
+    // Pre-fix: validateConfig(localRaw) injected the schema default enabled:true
+    // into the top layer, re-enabling the check the pack turned off.
+    expect(cfg.checks.commit_message?.enabled).toBe(false);
+    expect(cfg.checks.commit_message?.require_conventional).toBe(false);
+    // the user's explicit change still applies
+    expect(cfg.checks.commit_message?.severity).toBe("fail");
+  });
+
+  it("keeps the pack's build.enabled=false when the user sets only build.command", () => {
+    const cfg = parseConfig(
+      ["extends:", "  - solo-dev", "checks:", "  build:", "    command: 'make'"].join("\n"),
+    );
+    expect(cfg.checks.build?.enabled).toBe(false);
+  });
+});
+
 describe("diff parser: an added line starting with '++ ' / '-- ' cannot truncate the hunk", () => {
   it("still emits added lines that follow a '+++ '-prefixed added line", () => {
     // Raw added content "++ not metadata" renders as a diff line "+++ not metadata".
