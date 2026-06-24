@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { canAccessRepo } from "@/lib/ownership";
+import { isSafeWebhookUrl } from "@/lib/webhook-url";
 import { buildSlackMessage, sendSlackNotification } from "@lastgate/engine/src/notifications/slack";
 import { buildDiscordEmbed, sendDiscordNotification } from "@lastgate/engine/src/notifications/discord";
 import type { NotificationPayload } from "@lastgate/engine/src/notifications/types";
@@ -8,6 +11,11 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
+    // Was unauthenticated: anyone could load any config by id and make the
+    // server POST to its stored webhook_url — a blind SSRF + reachability oracle.
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+
     const supabase = createServerSupabaseClient();
     const body = await request.json();
     const { config_id } = body;
@@ -25,6 +33,20 @@ export async function POST(request: NextRequest) {
 
     if (error || !config) {
       return NextResponse.json({ error: "Config not found" }, { status: 404 });
+    }
+
+    // You may only test a config attached to a repo you own.
+    if (!config.repo_id || !(await canAccessRepo(session, config.repo_id))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Validate the stored URL at send time too (defends against pre-existing
+    // rows stored before storage-time validation existed).
+    if (!isSafeWebhookUrl(config.webhook_url)) {
+      return NextResponse.json(
+        { error: "Stored webhook_url is not an allowed Slack/Discord https URL" },
+        { status: 400 },
+      );
     }
 
     // Build a test payload
