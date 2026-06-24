@@ -5,11 +5,9 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const handleGitHubLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-    const redirectUri = `${window.location.origin}/callback`;
-    const scope = "read:user user:email";
-    const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
-    window.location.href = url;
+    // Go through the server start route so a CSRF `state` nonce is generated and
+    // stored in an httpOnly cookie before redirecting to GitHub.
+    window.location.href = "/api/auth/github/start";
   };
 
   return (

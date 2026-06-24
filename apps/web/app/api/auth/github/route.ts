@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createSession, sessionCookieOptions } from "@/lib/auth";
-import { encryptSecret } from "@/lib/crypto";
+import { encryptSecret, safeEqual } from "@/lib/crypto";
+import { OAUTH_STATE_COOKIE } from "@/app/api/auth/github/start/route";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    const { code } = await request.json();
+    const { code, state } = await request.json();
     // redirect_uri must be a server-trusted constant, never the client-supplied
     // Origin header (which an attacker controls).
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "";
@@ -17,6 +18,14 @@ export async function POST(request: NextRequest) {
         { error: "Authorization code is required" },
         { status: 400 }
       );
+    }
+
+    // CSRF: the state echoed back by GitHub must match the nonce we set in an
+    // httpOnly cookie when the flow started. Without this an attacker can bind a
+    // victim's browser to an attacker-controlled GitHub identity (login CSRF).
+    const expectedState = request.cookies.get(OAUTH_STATE_COOKIE)?.value;
+    if (!state || !expectedState || !safeEqual(String(state), expectedState)) {
+      return NextResponse.json({ error: "Invalid OAuth state" }, { status: 400 });
     }
 
     // Exchange code for access token
@@ -94,6 +103,8 @@ export async function POST(request: NextRequest) {
     const sessionToken = await createSession(user.id);
     const response = NextResponse.json({ user });
     response.cookies.set("lastgate_session", sessionToken, sessionCookieOptions());
+    // One-time state nonce — clear it.
+    response.cookies.set(OAUTH_STATE_COOKIE, "", { maxAge: 0, path: "/" });
 
     return response;
   } catch (error) {
