@@ -21,12 +21,31 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      # --- Tests: the WHOLE monorepo, not just the engine. DB-backed web
+      #     integration suites self-skip without SUPABASE_URL (see describe.if). ---
       - name: Test engine
         run: cd packages/engine && bun test
+      - name: Test CLI
+        run: cd packages/cli && bun test
+      - name: Test MCP server
+        run: cd packages/mcp-server && bun test
+      - name: Test SDK
+        run: cd packages/sdk && bun test
+      - name: Test web app
+        run: cd apps/web && bun test
+      - name: Test root integration/security suite
+        run: bun test tests/
 
+      # --- Type-check. Engine is type-clean today and is gated. Full-monorepo
+      #     type-check + the biome lint gate are a follow-up: they need the
+      #     per-package @types/bun tsconfig wiring (sdk/mcp/web/vscode test files
+      #     currently fail to resolve "bun:test") and a one-time style cleanup. ---
+      - name: Type-check engine
+        run: cd packages/engine && bun run type-check
+
+      # --- Builds ---
       - name: Build engine
         run: cd packages/engine && bun run build
-
       - name: Build web app
         run: cd apps/web && bun run build
         env:

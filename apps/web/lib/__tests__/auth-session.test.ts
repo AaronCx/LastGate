@@ -1,3 +1,8 @@
+// Make the crypto tests self-contained: encryptSecret derives its key from a
+// server secret, so give it a deterministic one (CI has none of those env vars).
+process.env.LASTGATE_ENCRYPTION_KEY =
+  process.env.LASTGATE_ENCRYPTION_KEY || "unit-test-encryption-key-deterministic";
+
 import { describe, it, expect } from "bun:test";
 import { requireSession, createSession, SESSION_COOKIE } from "../auth";
 import {
