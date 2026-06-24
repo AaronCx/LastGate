@@ -11,5 +11,8 @@
     "lint": "bun run --filter '*' lint",
     "test": "bun run --filter '*' test",
     "type-check": "bun run --filter '*' type-check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4"
   }
 }
