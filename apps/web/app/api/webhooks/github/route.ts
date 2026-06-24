@@ -44,6 +44,23 @@ async function fetchRepoYamlConfig(
   return undefined;
 }
 
+/**
+ * The git ref the gate CONFIG must be loaded from. For a pull_request this is the
+ * BASE (target) branch — never the PR head — so a PR cannot ship a permissive
+ * .lastgate.yml to disable the gate against its own diff. For a push it is the
+ * pushed commit (that IS the branch landing).
+ */
+export function gateConfigRef(
+  event: string,
+  payload: Record<string, unknown>,
+): string {
+  if (event === "push") return payload.after as string;
+  const pr = (payload.pull_request as Record<string, unknown>) || {};
+  const base = pr.base as Record<string, unknown> | undefined;
+  const head = pr.head as Record<string, unknown> | undefined;
+  return (base?.sha as string) || (base?.ref as string) || (head?.sha as string);
+}
+
 async function fetchChangedFiles(
   octokit: Awaited<ReturnType<typeof getInstallationOctokit>>,
   owner: string,
@@ -238,6 +255,8 @@ async function handleCheckEvent(
   let commitAuthor: string;
   let prNumber: number | null = null;
   let triggerEvent: string;
+  // Load the gate config from the base branch (see gateConfigRef), not the PR head.
+  const configRef = gateConfigRef(event, payload);
 
   if (event === "push") {
     headSha = payload.after as string;
@@ -326,7 +345,7 @@ async function handleCheckEvent(
   // Fetch repo config. The .lastgate.yml at the head ref is the source of
   // truth; the dashboard DB row is the per-team default for repos that don't
   // ship a YAML.
-  const repoYamlConfig = await fetchRepoYamlConfig(octokit, repoOwner, repoName, headSha);
+  const repoYamlConfig = await fetchRepoYamlConfig(octokit, repoOwner, repoName, configRef);
   let repoConfig: PipelineConfig | Record<string, unknown> | undefined = repoYamlConfig;
   if (!repoYamlConfig && repoId) {
     const { data: repoData } = await supabase
