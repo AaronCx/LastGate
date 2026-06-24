@@ -7,6 +7,7 @@ import {
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { runCheckPipeline, parseConfig } from "@lastgate/engine";
+import pkg from "../package.json" with { type: "json" };
 import { validateApiKey } from "./auth";
 import { PRE_CHECK_TOOL, formatPreCheckResult } from "./tools/pre-check";
 import { STATUS_TOOL, formatStatusResult } from "./tools/status";
@@ -64,7 +65,7 @@ function loadLocalConfig(configPath: string): Record<string, unknown> | null {
 
 export function createServer() {
   const server = new Server(
-    { name: "lastgate-mcp", version: "0.1.0" },
+    { name: "lastgate-mcp", version: pkg.version },
     { capabilities: { tools: {} } }
   );
 
