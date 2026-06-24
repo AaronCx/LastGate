@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireTeamPermission, isAuthError } from "@/lib/team-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    // The audit log is sensitive (overrides, approvals, config/member changes) —
+    // require a team member with manage_team.
+    const auth = await requireTeamPermission(request, id, "manage_team");
+    if (isAuthError(auth)) return auth;
+
     const supabase = createServerSupabaseClient();
     const { searchParams } = new URL(request.url);
 
