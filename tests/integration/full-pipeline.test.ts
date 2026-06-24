@@ -60,7 +60,9 @@ describe("Full Pipeline Integration", () => {
     expect(fileCheck?.status).toBe("fail");
 
     const commitCheck = results.checks.find(c => c.type === "commit_message");
-    expect(commitCheck?.status).toBe("fail"); // "stuff" is generic
+    // commit_message defaults to severity "warn" — a generic message warns, it
+    // does not fail (the engine honors per-check severity).
+    expect(commitCheck?.status).toBe("warn");
   });
 
   test("Scenario 3: Agent thrashing — file added then deleted", async () => {
@@ -106,10 +108,16 @@ describe("Full Pipeline Integration", () => {
     const lintCheck = results.checks.find(c => c.type === "lint");
     expect(lintCheck).toBeUndefined();
 
-    // Secrets check should still run and find the key
+    // Secrets check should still run and DETECT the key...
     const secretsCheck = results.checks.find(c => c.type === "secrets");
     expect(secretsCheck).toBeDefined();
-    expect(secretsCheck!.status).toBe("fail"); // Engine always returns fail when findings exist
+    const findings = (secretsCheck!.details as any).findings as any[];
+    expect(findings.length).toBeGreaterThan(0);
+    // ...but the explicit `severity: "warn"` override is honored — the user
+    // deliberately opted secrets out of blocking, so it warns (not fail). (A
+    // partial-config BUG silently doing this is the bug PR1/C5 fixed; an explicit
+    // override is intended.)
+    expect(secretsCheck!.status).toBe("warn");
   });
 
   test("result object has correct structure", async () => {

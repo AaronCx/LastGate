@@ -35,14 +35,14 @@ describe("AI Cache", () => {
   beforeEach(() => clearCache());
 
   test("getCacheKey generates consistent hashes", () => {
-    const key1 = getCacheKey("lint", "src/index.ts", "Missing semicolon");
-    const key2 = getCacheKey("lint", "src/index.ts", "Missing semicolon");
+    const key1 = getCacheKey("lint", "src/index.ts", 5, "Missing semicolon");
+    const key2 = getCacheKey("lint", "src/index.ts", 5, "Missing semicolon");
     expect(key1).toBe(key2);
   });
 
   test("different inputs produce different keys", () => {
-    const key1 = getCacheKey("lint", "src/a.ts", "Error A");
-    const key2 = getCacheKey("lint", "src/b.ts", "Error B");
+    const key1 = getCacheKey("lint", "src/a.ts", 1, "Error A");
+    const key2 = getCacheKey("lint", "src/b.ts", 2, "Error B");
     expect(key1).not.toBe(key2);
   });
 
@@ -86,10 +86,9 @@ describe("AI Cost", () => {
     expect(tokens).toBeLessThan(100);
   });
 
-  test("unknown model falls back to gpt-4o-mini pricing", () => {
-    const cost = estimateCost("unknown-model", 1000, 500);
-    const miniCost = estimateCost("gpt-4o-mini", 1000, 500);
-    expect(cost).toBe(miniCost);
+  test("unknown model returns 0 (no fabricated price)", () => {
+    // Previously it silently reported gpt-4o-mini pricing for any unknown model.
+    expect(estimateCost("unknown-model", 1000, 500)).toBe(0);
   });
 });
 
