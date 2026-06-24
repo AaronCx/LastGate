@@ -11,6 +11,7 @@ import { parseAddedLines, parseConfig, runCheckPipeline } from "@lastgate/engine
 import type { ChangedFile, CommitInfo, PipelineConfig } from "@lastgate/engine";
 import { gateConfigRef } from "@/lib/gate-config-ref";
 import { installRepoList } from "@/lib/webhook-events";
+import { buildUnifiedDiff } from "@/lib/diff";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Allow up to 60s for pipeline processing
@@ -466,6 +467,8 @@ async function handleCheckEvent(
         // Provenance: which engine + resolved config produced this run.
         engine_version: pipelineResult.meta.engineVersion,
         meta: pipelineResult.meta,
+        // Stored unified diff so the dashboard review page can render it.
+        diff: buildUnifiedDiff(files) || null,
       })
       .eq("id", checkRunRecord.id);
   }

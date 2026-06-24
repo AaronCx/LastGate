@@ -5,6 +5,7 @@ import { parseAddedLines } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo } from "@lastgate/engine";
 import { repoAccessibleToUser } from "@/lib/ownership";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { buildUnifiedDiff } from "@/lib/diff";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -112,6 +113,8 @@ export async function POST(request: NextRequest) {
         status: "running",
         commit_message: commit_message || "",
         commit_author: author || "cli",
+        // Store the unified diff so the dashboard review page can render it.
+        diff: buildUnifiedDiff(rawFiles || []) || null,
       })
       .select("id")
       .single();
