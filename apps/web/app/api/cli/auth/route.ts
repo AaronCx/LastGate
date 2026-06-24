@@ -108,6 +108,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from("api_keys")
       .select("id, name, key_prefix, created_at, last_used_at")
+      .eq("user_id", session.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -136,10 +137,20 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = createServerSupabaseClient();
-    const { error } = await supabase.from("api_keys").delete().eq("id", id);
+    // Only revoke YOUR OWN keys — without the user_id scope any user could
+    // revoke (or, via GET, enumerate) any other user's API keys by id.
+    const { data, error } = await supabase
+      .from("api_keys")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", session.id)
+      .select("id");
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return NextResponse.json({ ok: true });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { ownedRepoOrFilter } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from("repos")
       .select("*")
+      // Only the caller's own repos (service-role bypasses RLS).
+      .or(ownedRepoOrFilter(session))
       .order("full_name", { ascending: true });
 
     if (error) {
@@ -51,9 +54,11 @@ export async function POST(request: NextRequest) {
       .from("repos")
       .upsert(
         {
+          // Stamp ownership so the repo is scoped to its creator (was unset,
+          // leaving orphan repos no one could be checked against).
+          user_id: session.id,
           full_name,
           installation_id,
-          enabled: true,
           config: {
             checks: {
               secrets: { enabled: true },
@@ -116,11 +121,17 @@ export async function PATCH(request: NextRequest) {
       .from("repos")
       .update(updates)
       .eq("id", id)
+      // Only update a repo the caller owns — without this any user could PATCH
+      // any repo by id (flip is_active, overwrite security config).
+      .or(ownedRepoOrFilter(session))
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (!data) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return NextResponse.json({ data });

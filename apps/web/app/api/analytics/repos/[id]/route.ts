@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { canAccessRepo } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +11,13 @@ export async function GET(
 ) {
   try {
     const { id: repoId } = await params;
+    // Was unauthenticated — returned per-repo analytics for any UUID (IDOR).
+    const session = await requireSession(request);
+    if (!session) return unauthorizedResponse();
+    if (!(await canAccessRepo(session, repoId))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const supabase = createServerSupabaseClient();
     const { searchParams } = new URL(request.url);
 
