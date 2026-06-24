@@ -12,7 +12,9 @@ export default function BadgeGenerator({ repoFullName }: BadgeGeneratorProps) {
   const [copied, setCopied] = useState(false);
   const [style, setStyle] = useState<"simple" | "detailed">("simple");
 
-  const baseUrl = "https://lastgate.vercel.app";
+  // Use the configured app URL so badges work on any deployment (was hardcoded
+  // to lastgate.vercel.app, breaking badges on self-hosted / custom domains).
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://lastgate.vercel.app";
   const badgeUrl = `${baseUrl}/api/badge/${repoFullName}${style === "detailed" ? "?style=detailed" : ""}`;
   const dashboardUrl = `${baseUrl}`;
   const markdown = `[![LastGate](${badgeUrl})](${dashboardUrl})`;
