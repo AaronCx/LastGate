@@ -37,15 +37,23 @@ export function parseAddedLines(patch: string): AddedLine[] {
       continue;
     }
 
-    if (!inHunk) continue;
-
-    // Anything starting with one of these is file metadata that should never be inside a hunk;
-    // if we see it, we've left the hunk body and shouldn't process content lines until the next @@.
-    if (line.startsWith("diff --git") || line.startsWith("index ") ||
-        line.startsWith("+++ ") || line.startsWith("--- ")) {
+    // A new file's `diff --git` header always terminates the previous file's
+    // hunk body (git-generated diffs — the only kind LastGate consumes — always
+    // emit it). The subsequent `index`/`--- a/`/`+++ b/` metadata then arrives
+    // while we are NOT in a hunk and is skipped below.
+    if (line.startsWith("diff --git")) {
       inHunk = false;
       continue;
     }
+
+    // Between hunks/files: skip everything (file headers, mode lines, the
+    // `index`/`--- `/`+++ ` metadata). CRITICAL: only do this when NOT inside a
+    // hunk body. Real `+++ `/`--- ` file metadata never appears inside a hunk,
+    // so once inHunk we must classify by the content prefix below — otherwise an
+    // added line whose content begins with `++ ` (raw `+++ ...`) would be
+    // mistaken for metadata and silently truncate the rest of the hunk from the
+    // scanners (a craftable detection bypass).
+    if (!inHunk) continue;
 
     if (line.startsWith("\\")) {
       // "\ No newline at end of file" sentinel — neither advances counter nor emits.
