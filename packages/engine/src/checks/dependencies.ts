@@ -61,6 +61,37 @@ function parseNpmAuditJson(output: string): VulnerabilityFinding[] {
   return findings;
 }
 
+/**
+ * Parse `bun audit --json` output. bun uses its own schema — a top-level object
+ * keyed by package name, each value an array of advisory objects — which the
+ * npm parser cannot read, and it prints a version banner before the JSON body.
+ * Exported for unit testing against a captured fixture.
+ */
+export function parseBunAuditJson(output: string): VulnerabilityFinding[] {
+  const findings: VulnerabilityFinding[] = [];
+  const start = output.indexOf("{");
+  if (start === -1) return findings;
+  try {
+    const data = JSON.parse(output.slice(start)) as Record<string, unknown>;
+    for (const [pkg, advisories] of Object.entries(data)) {
+      if (!Array.isArray(advisories)) continue;
+      for (const a of advisories) {
+        if (!a || typeof a !== "object") continue;
+        const adv = a as { title?: string; url?: string; severity?: string };
+        findings.push({
+          package: pkg,
+          severity: adv.severity ?? "unknown",
+          title: adv.title ?? `Vulnerability in ${pkg}`,
+          url: adv.url,
+        });
+      }
+    }
+  } catch {
+    // Non-JSON output
+  }
+  return findings;
+}
+
 export async function checkDependencies(
   files: ChangedFile[],
   config: DependencyCheckConfig,
@@ -107,23 +138,21 @@ export async function checkDependencies(
     let auditFindings: VulnerabilityFinding[] = [];
 
     try {
-      let auditResult = await runCommand("bun pm audit", cwd);
-      if (auditResult.exitCode !== 0) {
-        try {
-          auditResult = await runCommand("npm audit --json", cwd);
-          auditFindings = parseNpmAuditJson(auditResult.stdout);
-        } catch {
-          if (auditResult.stdout.trim() || auditResult.stderr.trim()) {
-            issues.push({
-              message: `Audit output: ${(auditResult.stdout + auditResult.stderr).trim().substring(0, 500)}`,
-              severity: "medium",
-            });
-          }
-        }
+      // Prefer bun's native auditor (this engine and its repos are bun-based).
+      // `bun audit` exits NON-ZERO precisely when it finds vulnerabilities, so
+      // its output must be parsed regardless of exit code — the old code threw
+      // bun's findings away and re-ran npm with a parser that can't read bun's
+      // (or, on a bun-only repo, npm's) schema. Fall back to npm audit only when
+      // bun produced no JSON at all (older bun / not installed).
+      const bunAudit = await runCommand("bun audit --json", cwd);
+      auditFindings = parseBunAuditJson(bunAudit.stdout);
+      if (auditFindings.length === 0 && !bunAudit.stdout.includes("{")) {
+        const npmAudit = await runCommand("npm audit --json", cwd);
+        auditFindings = parseNpmAuditJson(npmAudit.stdout);
       }
     } catch {
       issues.push({
-        message: "Could not run dependency audit (neither bun pm audit nor npm audit available)",
+        message: "Could not run dependency audit (neither bun audit nor npm audit available)",
         severity: "low",
       });
     }
