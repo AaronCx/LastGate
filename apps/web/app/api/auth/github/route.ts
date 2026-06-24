@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createSession, sessionCookieOptions } from "@/lib/auth";
+import { encryptSecret } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
     const { code } = await request.json();
-    const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "";
+    // redirect_uri must be a server-trusted constant, never the client-supplied
+    // Origin header (which an attacker controls).
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "";
 
     if (!code) {
       return NextResponse.json(
@@ -28,7 +32,7 @@ export async function POST(request: NextRequest) {
           client_id: process.env.GITHUB_CLIENT_ID,
           client_secret: process.env.GITHUB_CLIENT_SECRET,
           code,
-          redirect_uri: `${origin}/callback`,
+          redirect_uri: `${appUrl}/callback`,
         }),
       }
     );
@@ -66,15 +70,19 @@ export async function POST(request: NextRequest) {
           github_username: userData.login,
           avatar_url: userData.avatar_url,
           email: userData.email,
-          access_token: accessToken,
+          // Encrypt the GitHub OAuth token at rest (the column comment always
+          // claimed "encrypted"; now it actually is).
+          access_token: encryptSecret(accessToken),
           updated_at: new Date().toISOString(),
         },
         { onConflict: "github_id" }
       )
-      .select()
+      // Project ONLY non-sensitive columns — never echo access_token (or any
+      // secret) back to the browser.
+      .select("id, github_username, avatar_url, email")
       .single();
 
-    if (userError) {
+    if (userError || !user) {
       console.error("Failed to upsert user:", userError);
       return NextResponse.json(
         { error: "Failed to create user session" },
@@ -82,15 +90,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Set session cookie
+    // Mint an opaque session token (the cookie is NOT the user id) and set it.
+    const sessionToken = await createSession(user.id);
     const response = NextResponse.json({ user });
-    response.cookies.set("lastgate_session", user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: "/",
-    });
+    response.cookies.set("lastgate_session", sessionToken, sessionCookieOptions());
 
     return response;
   } catch (error) {
