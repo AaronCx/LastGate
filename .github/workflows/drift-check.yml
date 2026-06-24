@@ -17,7 +17,7 @@ jobs:
     name: Engine version drift
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Compare deployed engine version to the repo
         env:
