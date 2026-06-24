@@ -46,14 +46,19 @@ export async function canAccessRepo(session: SessionUser, repoId: string): Promi
   return !!data;
 }
 
-/** True iff a specific user (not a web session) can access a repo — for the CLI key path. */
-export async function repoAccessibleToUser(userId: string, repoId: string): Promise<boolean> {
+async function userTeamIds(userId: string): Promise<string[]> {
   const supabase = createServerSupabaseClient();
-  const { data: teamRows } = await supabase
+  const { data } = await supabase
     .from("team_members")
     .select("team_id")
     .eq("user_id", userId);
-  const teamIds = (teamRows ?? []).map((r) => r.team_id as string);
+  return (data ?? []).map((r) => r.team_id as string);
+}
+
+/** True iff a specific user (not a web session) can access a repo — for the CLI key path. */
+export async function repoAccessibleToUser(userId: string, repoId: string): Promise<boolean> {
+  const supabase = createServerSupabaseClient();
+  const teamIds = await userTeamIds(userId);
   const { data } = await supabase
     .from("repos")
     .select("id")
@@ -61,4 +66,15 @@ export async function repoAccessibleToUser(userId: string, repoId: string): Prom
     .or(ownedRepoOrFilterFor(userId, teamIds))
     .maybeSingle();
   return !!data;
+}
+
+/** Every repo id a specific user can access (CLI key path). */
+export async function accessibleRepoIdsForUser(userId: string): Promise<string[]> {
+  const supabase = createServerSupabaseClient();
+  const teamIds = await userTeamIds(userId);
+  const { data } = await supabase
+    .from("repos")
+    .select("id")
+    .or(ownedRepoOrFilterFor(userId, teamIds));
+  return (data ?? []).map((r) => r.id as string);
 }
