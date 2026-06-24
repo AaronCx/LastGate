@@ -78,7 +78,7 @@ export function findHardcodedSecrets(
   for (const loc of locations) byFile.set(loc.file, (byFile.get(loc.file) ?? 0) + 1);
 
   for (const file of files) {
-    if (file.status === "deleted" || !file.content) continue;
+    if (file.status === "removed" || !file.content) continue;
     const count = byFile.get(file.path);
     if (!count) continue;
     if (!(extOf(file.path) in EXT_RENDERERS)) continue; // can't safely rewrite unknown types

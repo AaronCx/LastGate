@@ -18,7 +18,7 @@ export function findLinterAutofixable(
   files: { path: string; status: string }[],
 ): FixAction[] {
   const targets = files
-    .filter((f) => f.status !== "deleted")
+    .filter((f) => f.status !== "removed")
     .map((f) => f.path)
     .filter(isLintable);
 

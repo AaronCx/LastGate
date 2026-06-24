@@ -1,9 +1,12 @@
 import type { AutoFixConfig } from "./types";
 
 export function isProtectedBranch(branch: string, protectedBranches: string[]): boolean {
+  // Detached HEAD / unknown branch → protect (fail closed; never auto-mutate).
+  if (!branch || branch === "HEAD") return true;
   for (const pattern of protectedBranches) {
+    if (pattern === "*") return true; // match-all (previously fell open → unprotected)
     if (pattern.endsWith("/*")) {
-      const prefix = pattern.slice(0, -1);
+      const prefix = pattern.slice(0, -1); // "release/*" -> "release/"
       if (branch.startsWith(prefix)) return true;
     } else if (branch === pattern) {
       return true;

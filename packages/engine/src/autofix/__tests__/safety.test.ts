@@ -48,6 +48,13 @@ describe("Auto-Fix Safety Guards", () => {
     expect(isProtectedBranch("feature/x", config.protected_branches)).toBe(false);
   });
 
+  test("'*' protects everything (was fail-open) and detached HEAD is protected", () => {
+    expect(isProtectedBranch("feature/x", ["*"])).toBe(true);
+    expect(isProtectedBranch("main", ["*"])).toBe(true);
+    expect(isProtectedBranch("HEAD", ["main"])).toBe(true); // detached
+    expect(isProtectedBranch("", ["main"])).toBe(true); // unknown
+  });
+
   // Disabled
   test("auto-fix disabled in config — never runs", () => {
     const config = { ...defaultConfig, enabled: false };

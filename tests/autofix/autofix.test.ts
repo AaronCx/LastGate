@@ -79,8 +79,8 @@ describe("Remove Files Fixer", () => {
     expect(actions).toHaveLength(1);
   });
 
-  test("ignores deleted files", () => {
-    const actions = findBlockedFiles([{ path: ".env", status: "deleted" }]);
+  test("ignores removed files", () => {
+    const actions = findBlockedFiles([{ path: ".env", status: "removed" }]);
     expect(actions).toHaveLength(0);
   });
 

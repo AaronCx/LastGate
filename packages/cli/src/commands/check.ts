@@ -175,6 +175,34 @@ async function runCheck(options: CheckOptions): Promise<void> {
       console.log(formatCheckResults(results));
     }
 
+    // --fix: apply the safe, deterministic auto-fixes to the WORKING TREE.
+    if (options.fix && !options.json) {
+      const { runFix } = await import("../autofix/run-fix");
+      const report = await runFix(
+        changedFiles.map((f) => ({ path: f.path, status: f.status })),
+        branch,
+      );
+      if (report.blocked) {
+        console.log(`\n⚠ Auto-fix skipped: ${report.blocked}\n`);
+      } else if (report.applied.length === 0 && report.manual.length === 0) {
+        console.log("\n✓ No auto-fixable issues found.\n");
+      } else {
+        console.log("\nAuto-fix:");
+        for (const a of report.applied) {
+          console.log(`  ✓ ${a.type.replace("fix_", "").replace(/_/g, " ")}: ${a.file}`);
+        }
+        for (const m of report.manual) {
+          console.log(`  • manual fix recommended (${m.type}): ${m.file}`);
+        }
+        for (const f of report.failed) {
+          console.log(`  ✗ ${f.file}: ${f.reason}`);
+        }
+        if (report.applied.length) {
+          console.log("\n  Re-stage the changes (git add) and run `lastgate check` again.\n");
+        }
+      }
+    }
+
     // PR-6: severity-aware exit codes.
     //   0 — pass, or warnings-only, or --force
     //   1 — at least one unresolved fail-status check
@@ -201,7 +229,7 @@ export function registerCheckCommand(program: Command): void {
     .option("--staged", "Use staged changes (default — same as no --branch)")
     .option("--branch <branch>", "Compare against a target branch instead of staged changes")
     .option("--profile <profile>", "Run profile: fast (default, skips build) or full (everything)", "fast")
-    .option("--fix", "Run autofixers before reporting (planned — currently a no-op pass-through)")
+    .option("--fix", "Apply safe auto-fixes (whitespace, EOF newline, remove blocked files, update .gitignore) to the working tree")
     .option("--interactive", "Pause at the first failing step. Same as `lastgate step`.")
     .option("--json", "Output results as JSON")
     .option("--verbose", "Show detailed output")

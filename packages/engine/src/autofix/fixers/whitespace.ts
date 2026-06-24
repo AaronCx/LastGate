@@ -6,7 +6,7 @@ export function findTrailingWhitespace(
   const actions: FixAction[] = [];
 
   for (const file of files) {
-    if (file.status === "deleted") continue;
+    if (file.status === "removed") continue;
     if (!file.content) continue;
 
     const lines = file.content.split("\n");
@@ -37,7 +37,7 @@ export function findMissingEofNewline(
   const actions: FixAction[] = [];
 
   for (const file of files) {
-    if (file.status === "deleted") continue;
+    if (file.status === "removed") continue;
     if (!file.content) continue;
 
     if (file.content.length > 0 && !file.content.endsWith("\n")) {

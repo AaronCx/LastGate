@@ -16,9 +16,9 @@ describe("findLinterAutofixable", () => {
     expect(actions[0].description).toContain("2 changed files");
   });
 
-  test("ignores deleted files and non-lintable extensions", () => {
+  test("ignores removed files and non-lintable extensions", () => {
     const actions = findLinterAutofixable([
-      { path: "src/a.ts", status: "deleted" },
+      { path: "src/a.ts", status: "removed" },
       { path: "data.json", status: "modified" },
     ]);
     expect(actions).toEqual([]);
