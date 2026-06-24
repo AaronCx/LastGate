@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createSession, sessionCookieOptions } from "@/lib/auth";
 import { encryptSecret, safeEqual } from "@/lib/crypto";
-import { OAUTH_STATE_COOKIE } from "@/app/api/auth/github/start/route";
+import { OAUTH_STATE_COOKIE } from "@/lib/oauth";
 import { rateLimit, tooManyRequests, clientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";

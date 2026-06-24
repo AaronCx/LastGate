@@ -9,6 +9,7 @@ import { dispatchNotification } from "@/lib/github/notifications";
 import { configureBranchProtection } from "@/lib/github/branch-protection";
 import { parseAddedLines, parseConfig, runCheckPipeline } from "@lastgate/engine";
 import type { ChangedFile, CommitInfo, PipelineConfig } from "@lastgate/engine";
+import { gateConfigRef } from "@/lib/gate-config-ref";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Allow up to 60s for pipeline processing
@@ -42,23 +43,6 @@ async function fetchRepoYamlConfig(
     // No .lastgate.yml in repo — engine defaults will apply.
   }
   return undefined;
-}
-
-/**
- * The git ref the gate CONFIG must be loaded from. For a pull_request this is the
- * BASE (target) branch — never the PR head — so a PR cannot ship a permissive
- * .lastgate.yml to disable the gate against its own diff. For a push it is the
- * pushed commit (that IS the branch landing).
- */
-export function gateConfigRef(
-  event: string,
-  payload: Record<string, unknown>,
-): string {
-  if (event === "push") return payload.after as string;
-  const pr = (payload.pull_request as Record<string, unknown>) || {};
-  const base = pr.base as Record<string, unknown> | undefined;
-  const head = pr.head as Record<string, unknown> | undefined;
-  return (base?.sha as string) || (base?.ref as string) || (head?.sha as string);
 }
 
 async function fetchChangedFiles(
