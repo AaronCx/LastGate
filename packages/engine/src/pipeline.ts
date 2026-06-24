@@ -25,6 +25,7 @@ import { checkCommitMessage } from "./checks/commit-message";
 import { checkAgentPatterns } from "./checks/agent-patterns";
 import { checkSemantic, type SemanticContext } from "./checks/semantic";
 import { getDefaultConfig } from "./config/defaults";
+import { deepMerge } from "./config/merge";
 import { DEFAULT_BASELINE_PATH, loadBaseline } from "./config/allowlist";
 
 export interface PipelineInput {
@@ -94,7 +95,15 @@ async function buildCheckEntries(
   runEntry: (entry: CheckEntry, priorResults?: CheckResult[]) => Promise<CheckResult>;
 }> {
   const runProfile: CheckProfile = opts.profile ?? "fast";
-  const config = { ...getDefaultConfig(), ...input.config };
+  // Deep-merge so a partial caller config (e.g. a DB row that sets only some
+  // `checks` keys) layers field-by-field over the defaults instead of replacing
+  // the whole `checks` object. A shallow spread here silently dropped every
+  // unset check and stripped `severity` from the ones present — downgrading real
+  // secret leaks from blocking `fail` to non-blocking `warn`.
+  const config = deepMerge(
+    getDefaultConfig() as unknown as Record<string, unknown>,
+    (input.config ?? {}) as Record<string, unknown>,
+  ) as unknown as PipelineConfig;
 
   const baselinePath = config.baseline ?? DEFAULT_BASELINE_PATH;
   const baseline = await loadBaseline(baselinePath);
@@ -181,7 +190,10 @@ export async function runSingleCheck(
 
 /** Resolve the run's provenance metadata from the merged config. */
 export function resolveMeta(config: Partial<PipelineConfig> | undefined): CheckRunMeta {
-  const merged = { ...getDefaultConfig(), ...config };
+  const merged = deepMerge(
+    getDefaultConfig() as unknown as Record<string, unknown>,
+    (config ?? {}) as Record<string, unknown>,
+  ) as unknown as PipelineConfig;
   return {
     engineVersion: ENGINE_VERSION,
     entropyThreshold: merged.checks.secrets?.entropy_threshold ?? DEFAULT_ENTROPY_THRESHOLD,
@@ -204,8 +216,6 @@ export async function runCheckPipeline(
   input: PipelineInput,
   opts: PipelineOptions = {},
 ): Promise<CheckRunResults> {
-  const runProfile: CheckProfile = opts.profile ?? "fast";
-  void runProfile;
   const results: CheckResult[] = [];
   for await (const r of runChecksIterable(input, opts)) {
     results.push(r);
