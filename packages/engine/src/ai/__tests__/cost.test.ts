@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { estimateCost, isWithinBudget, estimateTokenCount } from "../cost";
+import { estimateCost, isWithinBudget, estimateTokenCount, isKnownModel } from "../cost";
 
 describe("Cost Controls", () => {
   // Budget
@@ -32,10 +32,11 @@ describe("Cost Controls", () => {
     expect(cost).toBeCloseTo(0.02, 5);
   });
 
-  test("estimateCost uses default model for unknown model", () => {
-    const cost = estimateCost("unknown-model", 1000, 1000);
-    // Falls back to gpt-4o-mini pricing
-    expect(cost).toBeCloseTo(0.00075, 5);
+  test("estimateCost returns 0 for an unknown model (no fabricated price)", () => {
+    // Previously it silently reported gpt-4o-mini pricing for any unknown model.
+    expect(estimateCost("unknown-model", 1000, 1000)).toBe(0);
+    expect(isKnownModel("unknown-model")).toBe(false);
+    expect(isKnownModel("claude-sonnet-4-6")).toBe(true);
   });
 
   test("estimateCost handles zero tokens", () => {

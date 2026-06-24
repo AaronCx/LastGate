@@ -59,6 +59,15 @@ describe("Engine public exports", () => {
       "parsePackRef",
       "resolveBuiltinPack",
       "BUILTIN_PACK_NAMES",
+      // AI fix-suggestion pipeline (now exported / wireable)
+      "generateFixSuggestions",
+      "getSurroundingLines",
+      "estimateCost",
+      "isKnownModel",
+      "isWithinBudget",
+      "estimateTokenCount",
+      "clearCache",
+      "getCacheSize",
     ];
     for (const key of expected) {
       expect(runtimeKeys).toContain(key);
