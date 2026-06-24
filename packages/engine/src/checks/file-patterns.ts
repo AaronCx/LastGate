@@ -1,19 +1,23 @@
 import type { ChangedFile, CheckResult, FilePatternCheckConfig } from "../types";
 import { statusFromFindings } from "./status";
 
+// Directory artifact patterns are prefixed with `**/` so they match at ANY
+// depth — `**/dist/**` blocks both `dist/x` and `packages/app/dist/x`. A bare
+// `dist/**` compiles to `^dist/.*$`, which silently misses every sub-package
+// copy (the common case in a monorepo — LastGate is itself one).
 const DEFAULT_BLOCKED_PATTERNS = [
   ".env",
   ".env.*",
   "!.env.example",
-  "node_modules/**",
-  "__pycache__/**",
+  "**/node_modules/**",
+  "**/__pycache__/**",
   ".DS_Store",
   "*.log",
-  "dist/**",
-  "build/**",
-  ".next/**",
-  "out/**",
-  ".claude/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/.next/**",
+  "**/out/**",
+  "**/.claude/**",
 ];
 
 /**
