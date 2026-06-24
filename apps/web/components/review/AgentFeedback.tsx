@@ -15,10 +15,6 @@ interface AgentFeedbackProps {
 }
 
 export default function AgentFeedback({ agent, failedChecks }: AgentFeedbackProps) {
-  const feedbackLines = failedChecks.map(
-    (c) => `- **${c.name}**: ${c.message}`
-  );
-
   return (
     <Card className="!bg-lg-surface !border-lg-border !ring-0">
       <CardHeader>
@@ -62,12 +58,13 @@ export default function AgentFeedback({ agent, failedChecks }: AgentFeedbackProp
                 PR that need to be fixed before it can be merged:
               </p>
               <div className="space-y-1 mb-3">
-                {feedbackLines.map((line, idx) => (
-                  <p key={idx} className="text-sm" dangerouslySetInnerHTML={{
-                    __html: line
-                      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                      .replace(/^- /, "")
-                  }} />
+                {/* Render via JSX (auto-escaped) instead of dangerouslySetInnerHTML —
+                    c.name/c.message originate from untrusted repo content and finding
+                    text, so HTML-injecting them was stored XSS in the dashboard. */}
+                {failedChecks.map((c, idx) => (
+                  <p key={idx} className="text-sm">
+                    <strong>{c.name}</strong>: {c.message}
+                  </p>
                 ))}
               </div>
               <p className="text-sm text-lg-text-muted italic">
