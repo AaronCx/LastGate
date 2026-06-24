@@ -26,7 +26,6 @@
 | 7.1 | OverviewCards | 5 | 5 | 0 | 0 | 4 cards, counts, zero state |
 | 7.2 | ActivityFeed | 7 | 7 | 0 | 0 | Status colors, entries, null agent |
 | 7.3 | RepoHealthGrid | 5 | 5 | 0 | 0 | Health indicators, counts, unique names |
-| 7.4 | CheckTimeline | 6 | 6 | 0 | 0 | Timeline entries, filters, pagination |
 | 7.5 | DiffViewer | 5 | 5 | 0 | 0 | Line parsing, colors, annotations |
 | 7.6 | ReviewActions | 5 | 5 | 0 | 0 | Actions, disabled state, success/error |
 | 7.7 | ApiKeyManager | 7 | 7 | 0 | 0 | Generate, mask, revoke, hash |
@@ -45,7 +44,7 @@
 | 11.2 | Webhook Security | 6 | 6 | 0 | 0 | Signature, replay, payload size, timing-safe |
 | 11.3 | Input Validation | 7 | 7 | 0 | 0 | Malformed JSON, SQL injection, XSS, path traversal |
 | 11.4 | Secret Handling | 5 | 5 | 0 | 0 | Redaction in findings, API, logs |
-| **TOTAL** | | **389** | **389** | **0** | **0** | **795 assertions** |
+| **TOTAL** | | **383** | **383** | **0** | **0** | **795 assertions** |
 
 Date run: 2026-03-13
 Commit SHA at time of test: 74f7bbf9c5534f6c2661a9e56878f366dc674a50
@@ -67,4 +66,4 @@ Duration: 2.45s
 
 ## Remaining Issues
 
-None — all 389 tests pass with 0 failures.
+None — all 383 tests pass with 0 failures.
