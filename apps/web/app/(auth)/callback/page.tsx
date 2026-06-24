@@ -11,17 +11,20 @@ function CallbackContent() {
 
   useEffect(() => {
     const code = searchParams.get("code");
+    const state = searchParams.get("state");
     if (!code) {
       setError("No authorization code received from GitHub.");
       return;
     }
 
-    async function exchangeCode(code: string) {
+    async function exchangeCode(code: string, state: string | null) {
       try {
         const res = await fetch("/api/auth/github", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
+          // Forward the state GitHub echoed back; the server verifies it against
+          // the httpOnly cookie set when the flow started.
+          body: JSON.stringify({ code, state }),
         });
 
         if (!res.ok) {
@@ -37,7 +40,7 @@ function CallbackContent() {
       }
     }
 
-    exchangeCode(code);
+    exchangeCode(code, state);
   }, [searchParams, router]);
 
   if (error) {
