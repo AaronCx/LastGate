@@ -68,6 +68,7 @@ describe("Engine public exports", () => {
       "estimateTokenCount",
       "clearCache",
       "getCacheSize",
+      "getCacheKey",
     ];
     for (const key of expected) {
       expect(runtimeKeys).toContain(key);

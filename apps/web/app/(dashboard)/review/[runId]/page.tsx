@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import CheckAnnotations from "@/components/review/CheckAnnotations";
 import ReviewActions from "@/components/review/ReviewActions";
 import AgentFeedback from "@/components/review/AgentFeedback";
+import AiSuggestionsPanel from "@/components/review/AiSuggestionsPanel";
 
 interface Annotation {
   file: string;
@@ -345,6 +346,9 @@ export default function ReviewDetailPage() {
           </div>
         </Card>
       ) : null}
+
+      {/* AI fix suggestions (wires the AiSuggestion + CostTracker components) */}
+      <AiSuggestionsPanel runId={runId} />
 
       {/* Actions */}
       <ReviewActions runId={runId} />
