@@ -4,6 +4,7 @@ import { parseConfig } from "../config/parser";
 import { parseAddedLines } from "../diff/parse";
 import { checkFilePatterns } from "../checks/file-patterns";
 import { checkSecrets } from "../checks/secrets";
+import { parseBunAuditJson } from "../checks/dependencies";
 import type { ChangedFile, PipelineConfig } from "../types";
 
 function entropyFindings(details: Record<string, unknown>): Array<{ pattern: string }> {
@@ -119,6 +120,36 @@ describe("diff parser: an added line starting with '++ ' / '-- ' cannot truncate
     const texts = added.map((a) => a.text);
     expect(texts).toContain('const key = "AKIAIOSFODNN7EXAMPLE";');
     expect(texts.some((t) => t.includes("another added line"))).toBe(true);
+  });
+});
+
+describe("dependencies: bun audit output is parsed (not discarded for npm)", () => {
+  // Captured `bun audit --json` shape: a version banner, then a top-level object
+  // keyed by package name with advisory arrays. The npm parser can't read this.
+  const bunOutput = [
+    "bun audit v1.3.10 (30e609e0)",
+    JSON.stringify({
+      "fast-uri": [
+        { id: 1117884, url: "https://github.com/advisories/GHSA-v39h-62p7-jpjc", title: "fast-uri host confusion", severity: "high", vulnerable_versions: "<=3.1.1" },
+      ],
+      hono: [
+        { id: 1117915, url: "https://github.com/advisories/GHSA-qp7p-654g-cw7p", title: "Hono CSS injection", severity: "moderate" },
+      ],
+    }),
+  ].join("\n");
+
+  it("extracts every advisory across packages, skipping the banner", () => {
+    const findings = parseBunAuditJson(bunOutput);
+    expect(findings.length).toBe(2);
+    const byPkg = Object.fromEntries(findings.map((f) => [f.package, f]));
+    expect(byPkg["fast-uri"].severity).toBe("high");
+    expect(byPkg["fast-uri"].title).toContain("host confusion");
+    expect(byPkg["hono"].severity).toBe("moderate");
+  });
+
+  it("returns [] for empty/no-vuln output without throwing", () => {
+    expect(parseBunAuditJson("bun audit v1.3.10\n{}")).toEqual([]);
+    expect(parseBunAuditJson("")).toEqual([]);
   });
 });
 
