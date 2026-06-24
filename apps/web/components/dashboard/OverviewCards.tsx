@@ -3,11 +3,41 @@
 import { useEffect, useState } from "react";
 import { Card, SparkAreaChart, BadgeDelta } from "@tremor/react";
 
+// Matches the actual /api/analytics response shape (was reading flat keys the
+// API never returned, so every KPI rendered 0).
 interface AnalyticsData {
-  totalChecks: number;
-  passRate: number;
-  failedChecks: number;
-  dailyData?: Array<{ date: string; checks: number; passRate: number; failures: number }>;
+  summary?: {
+    totalRuns: number;
+    passedRuns: number;
+    failedRuns: number;
+    passRate: number;
+  };
+  dailyPassRate?: Array<{
+    day: string;
+    total: number;
+    passed: number;
+    failed: number;
+    passRate: number;
+  }>;
+}
+
+/** Map the real /api/analytics response to the KPI values. Exported + tested so
+ *  a shape drift (which previously made every card render 0) fails a test. */
+export function deriveAnalyticsKpis(analytics: AnalyticsData | null) {
+  const s = analytics?.summary;
+  return {
+    totalChecks: s?.totalRuns ?? 0,
+    passRate: s?.passRate ?? 0,
+    blockedCommits: s?.failedRuns ?? 0,
+    daily: analytics?.dailyPassRate ?? [],
+  };
+}
+
+/** /api/repos returns { data: [...] }. */
+export function repoCountFromResponse(repos: unknown): number {
+  if (Array.isArray(repos)) return repos.length;
+  const data = (repos as { data?: unknown[] } | null)?.data;
+  return Array.isArray(data) ? data.length : 0;
 }
 
 function KpiCard({
@@ -75,7 +105,7 @@ export default function OverviewCards() {
     ])
       .then(([analytics, repos]) => {
         if (analytics) setData(analytics);
-        if (repos) setRepoCount(Array.isArray(repos) ? repos.length : repos?.repos?.length || 0);
+        if (repos) setRepoCount(repoCountFromResponse(repos));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -92,17 +122,18 @@ export default function OverviewCards() {
     );
   }
 
-  const daily = data?.dailyData || [];
-  const checksSparkData = daily.map((d) => ({ date: d.date, value: d.checks }));
-  const passRateSparkData = daily.map((d) => ({ date: d.date, value: d.passRate }));
-  const failSparkData = daily.map((d) => ({ date: d.date, value: d.failures }));
-  const repoSparkData = daily.map((d) => ({ date: d.date, value: 1 }));
+  const kpis = deriveAnalyticsKpis(data);
+  const daily = kpis.daily;
+  const checksSparkData = daily.map((d) => ({ date: d.day, value: d.total }));
+  const passRateSparkData = daily.map((d) => ({ date: d.day, value: d.passRate }));
+  const failSparkData = daily.map((d) => ({ date: d.day, value: d.failed }));
+  const repoSparkData = daily.map((d) => ({ date: d.day, value: 1 }));
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <KpiCard
         title="Total Checks"
-        value={String(data?.totalChecks ?? 0)}
+        value={String(kpis.totalChecks)}
         delta="vs last week"
         deltaType="moderateIncrease"
         sparkData={checksSparkData}
@@ -110,7 +141,7 @@ export default function OverviewCards() {
       />
       <KpiCard
         title="Pass Rate"
-        value={`${(data?.passRate ?? 0).toFixed(1)}%`}
+        value={`${kpis.passRate.toFixed(1)}%`}
         delta="vs last week"
         deltaType="moderateIncrease"
         sparkData={passRateSparkData}
@@ -118,7 +149,7 @@ export default function OverviewCards() {
       />
       <KpiCard
         title="Blocked Commits"
-        value={String(data?.failedChecks ?? 0)}
+        value={String(kpis.blockedCommits)}
         delta="vs last week"
         deltaType="moderateDecrease"
         sparkData={failSparkData}
