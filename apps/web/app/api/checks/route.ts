@@ -29,7 +29,12 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("check_runs")
-      .select("*", { count: "exact" })
+      // Explicit columns (NOT select *) so the large stored `diff` is never
+      // shipped in list responses — only the per-run detail route returns it.
+      .select(
+        "id, repo_id, commit_sha, pr_number, branch, trigger_event, status, started_at, completed_at, total_checks, passed_checks, failed_checks, warned_checks, commit_message, commit_author, is_agent_commit, agent_session_id, created_at",
+        { count: "exact" },
+      )
       .in("repo_id", repoIds)
       .order("created_at", { ascending: false })
       .range((page - 1) * limit, page * limit - 1);

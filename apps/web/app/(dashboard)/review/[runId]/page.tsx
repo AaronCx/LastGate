@@ -19,6 +19,8 @@ import CheckAnnotations from "@/components/review/CheckAnnotations";
 import ReviewActions from "@/components/review/ReviewActions";
 import AgentFeedback from "@/components/review/AgentFeedback";
 import AiSuggestionsPanel from "@/components/review/AiSuggestionsPanel";
+import DiffViewer from "@/components/review/DiffViewer";
+import { parseUnifiedDiff } from "@/lib/diff";
 
 interface Annotation {
   file: string;
@@ -58,6 +60,7 @@ interface CheckRunDetail {
   is_agent_commit: boolean;
   agent_session_id: string | null;
   created_at: string;
+  diff: string | null;
   results: CheckResult[];
 }
 
@@ -343,6 +346,21 @@ export default function ReviewDetailPage() {
             <p className="text-xs text-lg-text-muted mt-1">
               {activeResult.summary || "Check passed"}
             </p>
+          </div>
+        </Card>
+      ) : null}
+
+      {/* Changed files — renders the stored unified diff via <DiffViewer> */}
+      {checkRun.diff ? (
+        <Card className="!bg-lg-surface !border-lg-border !ring-0">
+          <div className="flex items-center gap-2 mb-4">
+            <FileCode className="h-4 w-4 text-lg-accent" />
+            <h3 className="font-sans font-semibold text-lg-text">Changed Files</h3>
+          </div>
+          <div className="space-y-4">
+            {parseUnifiedDiff(checkRun.diff).map((file, i) => (
+              <DiffViewer key={i} filename={file.filename} lines={file.lines} />
+            ))}
           </div>
         </Card>
       ) : null}

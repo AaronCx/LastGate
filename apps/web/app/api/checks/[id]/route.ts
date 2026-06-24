@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { canAccessRepo } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,12 @@ export async function GET(
         { error: "Check run not found" },
         { status: 404 }
       );
+    }
+
+    // Scope to the caller's repos — this detail route (incl. the stored diff)
+    // previously returned any run by id.
+    if (!checkRun.repo_id || !(await canAccessRepo(session, checkRun.repo_id))) {
+      return NextResponse.json({ error: "Check run not found" }, { status: 404 });
     }
 
     const { data: checkResults, error: resultsError } = await supabase
