@@ -41,7 +41,7 @@ export type { PipelineInput } from "./pipeline";
 // AI fix-suggestion pipeline (opt-in; the caller injects the LLM call).
 export { generateFixSuggestions, getSurroundingLines } from "./ai/suggest-fix";
 export { estimateCost, isKnownModel, isWithinBudget, estimateTokenCount } from "./ai/cost";
-export { clearCache, getCacheSize } from "./ai/cache";
+export { clearCache, getCacheSize, getCacheKey } from "./ai/cache";
 export type {
   FixSuggestion,
   FixSuggestionRequest,
