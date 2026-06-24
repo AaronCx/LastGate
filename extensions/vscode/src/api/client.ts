@@ -1,30 +1,40 @@
-export interface CheckRun {
+export interface CheckEntry {
   id: string;
-  status: string;
-  commit_sha: string;
+  repo: string;
   branch: string;
-  commit_message: string;
-  total_checks: number;
-  passed_checks: number;
-  failed_checks: number;
-  created_at: string;
+  status: "pass" | "fail" | "warn";
+  checksRun: number;
+  failures: number;
+  warnings: number;
+  timestamp: string;
+  commitHash: string;
 }
 
-export interface CheckResult {
-  id: string;
-  check_type: string;
-  status: string;
-  title: string;
-  summary: string;
-  details: {
-    findings?: { file: string; line?: number; message: string }[];
+export interface RunFinding {
+  file: string;
+  line?: number;
+  message: string;
+  checkType: string;
+  status: "fail" | "warn";
+}
+
+export interface RunDetails {
+  run: {
+    id: string;
+    status: string;
+    branch: string;
+    commit_sha: string;
+    total_checks: number;
+    failed_checks: number;
+    created_at: string;
   };
+  findings: RunFinding[];
 }
 
 export class LastGateClient {
   constructor(
     private apiKey: string,
-    private baseUrl: string = "https://lastgate.vercel.app"
+    private baseUrl: string = "https://lastgate.vercel.app",
   ) {}
 
   private async request<T>(path: string, params?: Record<string, string>): Promise<T> {
@@ -34,32 +44,25 @@ export class LastGateClient {
         url.searchParams.set(key, value);
       }
     }
-
     const response = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
       },
     });
-
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      throw new Error(`LastGate API error: ${response.status}`);
     }
-
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
-  async getRecentChecks(repo?: string, limit: number = 10): Promise<{ data: CheckRun[] }> {
-    const params: Record<string, string> = { limit: limit.toString() };
-    if (repo) params.repo = repo;
-    return this.request("/checks", params);
+  /** Recent check runs (bearer-authed; was wrongly hitting the cookie-only /checks). */
+  async getRecentChecks(limit = 10): Promise<{ entries: CheckEntry[] }> {
+    return this.request("/cli/checks", { limit: String(limit) });
   }
 
-  async getCheckDetails(id: string): Promise<{ data: CheckRun & { results: CheckResult[] } }> {
-    return this.request(`/checks/${id}`);
-  }
-
-  async getRepoStatus(repo: string): Promise<{ status: string; passRate: number }> {
-    return this.request(`/analytics/repos/${repo}`, { range: "7d" });
+  /** A single run's findings, for diagnostics. */
+  async getCheckFindings(id: string): Promise<RunDetails> {
+    return this.request(`/cli/checks/${encodeURIComponent(id)}`);
   }
 }

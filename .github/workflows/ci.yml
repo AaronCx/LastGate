@@ -43,6 +43,10 @@ jobs:
       - name: Type-check engine
         run: cd packages/engine && bun run type-check
 
+      # The VS Code extension is outside the workspace (own install).
+      - name: Compile VS Code extension
+        run: cd extensions/vscode && bun install && bun run compile
+
       # --- Builds ---
       - name: Build engine
         run: cd packages/engine && bun run build
