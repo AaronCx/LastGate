@@ -1,20 +1,15 @@
+import { execFile } from "node:child_process";
 import type { CommitInfo } from "@lastgate/engine";
 
-async function runGit(args: string[]): Promise<string> {
-  const proc = Bun.spawn(["git", ...args], {
-    stdout: "pipe",
-    stderr: "pipe",
+// node child_process (works under both node and bun) — the published CLI runs
+// under node, where Bun.spawn does not exist.
+function runGit(args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile("git", args, { maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) reject(new Error(`git ${args[0]} failed: ${String(stderr).trim()}`));
+      else resolve(stdout);
+    });
   });
-
-  const stdout = await new Response(proc.stdout).text();
-  const stderr = await new Response(proc.stderr).text();
-  const exitCode = await proc.exited;
-
-  if (exitCode !== 0) {
-    throw new Error(`git ${args[0]} failed: ${stderr.trim()}`);
-  }
-
-  return stdout;
 }
 
 const LOG_FORMAT = "%H%n%an%n%ae%n%s%n%b%n---END---";
