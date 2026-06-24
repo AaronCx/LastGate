@@ -7,6 +7,7 @@ import ApiKeyManager from "@/components/settings/ApiKeyManager";
 import NotificationPrefs from "@/components/settings/NotificationPrefs";
 import NotificationConfig from "@/components/settings/NotificationConfig";
 import BadgeGenerator from "@/components/settings/BadgeGenerator";
+import GlobalRuleDefaults from "@/components/settings/GlobalRuleDefaults";
 
 interface Repo {
   id: string;
@@ -82,36 +83,7 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {[
-                { name: "Secret Scanner", desc: "Detect leaked secrets and credentials", defaultEnabled: true },
-                { name: "Duplicate Detector", desc: "Identify code duplication", defaultEnabled: true },
-                { name: "Lint & Type Check", desc: "Run linter and type checker", defaultEnabled: true },
-                { name: "Build Verifier", desc: "Verify the project builds", defaultEnabled: false },
-                { name: "Dependency Audit", desc: "Scan dependencies for vulnerabilities", defaultEnabled: true },
-                { name: "Agent Pattern Analysis", desc: "Track and analyze agent behavior", defaultEnabled: true },
-              ].map((rule) => (
-                <div
-                  key={rule.name}
-                  className="flex items-center justify-between py-2"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-lg-text">
-                      {rule.name}
-                    </p>
-                    <p className="text-xs text-lg-text-muted">{rule.desc}</p>
-                  </div>
-                  <label className="relative inline-flex cursor-pointer items-center">
-                    <input
-                      type="checkbox"
-                      defaultChecked={rule.defaultEnabled}
-                      className="peer sr-only"
-                    />
-                    <div className="h-6 w-11 rounded-full bg-lg-surface-2 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-lg-border after:bg-lg-surface after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-2 peer-focus:ring-primary/20" />
-                  </label>
-                </div>
-              ))}
-            </div>
+            <GlobalRuleDefaults />
           </CardContent>
         </Card>
 
