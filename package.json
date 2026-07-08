@@ -1,6 +1,11 @@
 {
   "name": "lastgate",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AaronCx/LastGate.git"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
