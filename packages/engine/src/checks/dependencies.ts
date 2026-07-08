@@ -92,6 +92,63 @@ export function parseBunAuditJson(output: string): VulnerabilityFinding[] {
   return findings;
 }
 
+/**
+ * package.json keys that cannot affect dependency resolution. A change confined
+ * to these never requires a lockfile update — bun.lock records only the
+ * workspace name and dependency graph, so `bun install` after a license or
+ * repository edit leaves it byte-identical and the drift warning would be
+ * unsatisfiable. Includes the nested keys of the allowed object-valued fields
+ * (repository/bugs/author/funding: type, url, email, directory). "name" is
+ * deliberately absent: bun.lock mirrors the workspace name, so renames are
+ * real drift.
+ */
+const NON_RESOLUTION_PACKAGE_KEYS = new Set([
+  "version",
+  "description",
+  "keywords",
+  "homepage",
+  "bugs",
+  "license",
+  "author",
+  "contributors",
+  "funding",
+  "repository",
+  "private",
+  "type",
+  "url",
+  "email",
+  "directory",
+]);
+
+/**
+ * True when every added/removed line of a package.json patch is confined to
+ * metadata fields that cannot change the dependency graph. Line-based on
+ * purpose: any resolution-relevant block (dependencies, workspaces, overrides,
+ * …) enters a diff through its own key line, which is not allowlisted, so
+ * keyless structural lines (`{`, `},`) and bare array-element strings are
+ * neutral. Undecidable input — no patch, or an unrecognized line — returns
+ * false so the caller keeps flagging drift.
+ */
+export function isMetadataOnlyPackageJsonChange(patch: string | undefined): boolean {
+  if (!patch) return false;
+  let sawChange = false;
+  for (const raw of patch.split("\n")) {
+    if (raw.startsWith("+++") || raw.startsWith("---")) continue;
+    if (!raw.startsWith("+") && !raw.startsWith("-")) continue;
+    sawChange = true;
+    const line = raw.slice(1).trim();
+    if (line === "" || /^[{}\[\],]+$/.test(line)) continue;
+    const key = line.match(/^"([^"]+)"\s*:/)?.[1];
+    if (key !== undefined) {
+      if (!NON_RESOLUTION_PACKAGE_KEYS.has(key)) return false;
+      continue;
+    }
+    if (/^"[^"]*",?$/.test(line)) continue;
+    return false;
+  }
+  return sawChange;
+}
+
 export async function checkDependencies(
   files: ChangedFile[],
   config: DependencyCheckConfig,
@@ -126,7 +183,11 @@ export async function checkDependencies(
       f.endsWith("/package-lock.json") || f.endsWith("/yarn.lock") || f.endsWith("/pnpm-lock.yaml"),
     );
 
-    if (!lockfileChanged) {
+    const metadataOnly = files
+      .filter((f) => f.path === "package.json" || f.path.endsWith("/package.json"))
+      .every((f) => isMetadataOnlyPackageJsonChange(f.patch));
+
+    if (!lockfileChanged && !metadataOnly) {
       issues.push({
         message: "package.json changed but lockfile was not updated. Run your package manager to update the lockfile.",
         severity: "high",
