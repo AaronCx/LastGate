@@ -11,6 +11,10 @@
     ".": "./src/index.ts"
   },
   "files": ["src", "bin"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AaronCx/LastGate.git"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@lastgate/engine": "workspace:*"

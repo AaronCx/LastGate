@@ -4,6 +4,11 @@
   "description": "AI agent commit guardian — see check results directly in VS Code",
   "version": "0.1.0",
   "publisher": "aaroncx",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AaronCx/LastGate.git"
+  },
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Linters", "Other"],
   "activationEvents": ["workspaceContains:.lastgate.yml"],

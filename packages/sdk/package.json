@@ -9,5 +9,9 @@
     ".": "./src/index.ts"
   },
   "files": ["src"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AaronCx/LastGate.git"
+  },
   "license": "MIT"
 }
