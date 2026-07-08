@@ -8,8 +8,8 @@
 <p align="center">
   <a href="https://github.com/AaronCx/LastGate/actions"><img src="https://img.shields.io/github/actions/workflow/status/AaronCx/LastGate/ci.yml?branch=main&label=CI&logo=github" alt="CI"></a>
   <a href="https://www.npmjs.com/package/lastgate"><img src="https://img.shields.io/npm/v/lastgate?logo=npm&color=cb3837" alt="npm"></a>
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.3-3178C6?logo=typescript&logoColor=white" alt="TypeScript"></a>
-  <a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-1.1-f9f1e1?logo=bun&logoColor=000" alt="Bun"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript"></a>
+  <a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-f9f1e1?logo=bun&logoColor=000" alt="Bun"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"></a>
 </p>
 
