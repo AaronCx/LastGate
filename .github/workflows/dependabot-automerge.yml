@@ -1,0 +1,39 @@
+name: Dependabot auto-merge
+
+# Enables GitHub auto-merge on Dependabot minor/patch PRs. The merge itself
+# only happens once ALL required status checks pass, so this is only safe if
+# a branch ruleset on main requires the "Test & Build" check (see SETUP notes;
+# without a required check, auto-merge fires immediately).
+#
+# Majors are deliberately excluded: they arrive as individual PRs for human
+# review (see the group config in .github/dependabot.yml).
+#
+# Known caveat: merges enabled with the default GITHUB_TOKEN may not trigger
+# downstream push workflows on main (GitHub anti-recursion rule). If the CI
+# deploy job does not fire after an auto-merge, create a fine-grained PAT with
+# contents:write + pull-requests:write, store it as AUTOMERGE_TOKEN, and swap
+# it in below. The daily drift check catches any missed deploy either way.
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    name: Enable auto-merge for minor/patch
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'AaronCx/LastGate'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2
+
+      - name: Enable auto-merge (squash)
+        if: steps.metadata.outputs.update-type == 'version-update:semver-minor' || steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # or secrets.AUTOMERGE_TOKEN, see header

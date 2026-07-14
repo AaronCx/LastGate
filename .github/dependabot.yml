@@ -11,15 +11,38 @@ updates:
       - "/packages/sdk"
     schedule:
       interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    # Supply-chain cooldown: let releases age before ingesting them, so a
+    # compromised package pushed yesterday never lands here automatically.
+    cooldown:
+      default-days: 5
+      semver-major-days: 14
+    labels:
+      - "dependencies"
+    # Matches the conventional-commit check in .lastgate.yml.
+    commit-message:
+      prefix: "chore(deps)"
     groups:
-      npm:
+      # Minor + patch bumps arrive as one grouped PR (auto-merged when green).
+      # Majors intentionally fall outside the group: individual PRs, human review.
+      npm-minor-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(deps)"
     groups:
-      actions:
+      actions-minor-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
