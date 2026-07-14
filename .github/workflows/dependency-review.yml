@@ -1,0 +1,30 @@
+name: Dependency Review
+
+# Blocks PRs that ADD a dependency with a known vulnerability, at review time.
+# Complements Dependabot (which fixes what is already merged) and mirrors
+# LastGate's own dependency-auditor check at the repo boundary.
+# Requires Dependabot alerts / dependency graph to be enabled in repo settings.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Review dependency changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write # for the on-failure summary comment
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@05fe4576374b728f0c523d6a13d64c25081e0803 # v4.8.3
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

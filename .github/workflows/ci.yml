@@ -6,20 +6,40 @@ on:
   pull_request:
     branches: [main]
 
+# Least-privilege token. Individual jobs re-declare only what they need.
+permissions:
+  contents: read
+
+# One run per ref: PR pushes cancel stale runs; main pushes queue in order
+# so deploys never land out of sequence.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Floats on 1.3 patches, blocks 1.4+/2.x surprises. Release pins exact.
+  # Dependabot does not manage this input; bump alongside local upgrades.
+  BUN_VERSION: "1.3.x"
+
 jobs:
   test-and-build:
     name: Test & Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      # All actions are pinned to full commit SHAs (supply-chain hardening).
+      # Dependabot tracks SHA pins and keeps the version comments accurate.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: latest
+          bun-version: ${{ env.BUN_VERSION }}
 
-      - name: Install dependencies
-        run: bun install
+      # --frozen-lockfile: lockfile drift fails loudly instead of being
+      # silently rewritten on the runner.
+      - name: Install dependencies (locked)
+        run: bun install --frozen-lockfile
 
       # --- Tests: the WHOLE monorepo, not just the engine. DB-backed web
       #     integration suites self-skip without SUPABASE_URL (see describe.if). ---
@@ -37,15 +57,16 @@ jobs:
         run: bun test tests/
 
       # --- Type-check. Engine is type-clean today and is gated. Full-monorepo
-      #     type-check + the biome lint gate are a follow-up: they need the
-      #     per-package @types/bun tsconfig wiring (sdk/mcp/web/vscode test files
-      #     currently fail to resolve "bun:test") and a one-time style cleanup. ---
+      #     type-check + the biome lint gate are still a follow-up: they need the
+      #     per-package @types/bun tsconfig wiring, and `biome ci .` currently
+      #     reports ~234 errors at the root config, so the gate stays off until
+      #     that one-time cleanup lands. ---
       - name: Type-check engine
         run: cd packages/engine && bun run type-check
 
-      # The VS Code extension is outside the workspace (own install).
+      # The VS Code extension is outside the workspace (own install + lockfile).
       - name: Compile VS Code extension
-        run: cd extensions/vscode && bun install && bun run compile
+        run: cd extensions/vscode && bun install --frozen-lockfile && bun run compile
 
       # --- Builds ---
       - name: Build engine
@@ -55,3 +76,78 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+
+  # Deploys ONLY after Test & Build is green (needs:), which closes the race
+  # where a broken commit could ship before CI finished. No-ops cleanly until
+  # the Vercel credentials are configured; add these repo secrets to enable:
+  #   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+  deploy:
+    name: Deploy apps/web to Vercel
+    needs: test-and-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check Vercel credentials
+        id: guard
+        run: |
+          if [ -n "${{ secrets.VERCEL_TOKEN }}" ] && [ -n "${{ secrets.VERCEL_ORG_ID }}" ] && [ -n "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel secrets missing; skipping deploy (see the workflow header to enable)."
+          fi
+
+      - if: steps.guard.outputs.ready == 'true'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      # `vercel build` runs the project's bun-based install + build commands,
+      # so bun must be on PATH on the runner.
+      - name: Setup Bun
+        if: steps.guard.outputs.ready == 'true'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install Vercel CLI (pinned)
+        if: steps.guard.outputs.ready == 'true'
+        run: npm install -g vercel@56.1.0
+
+      - name: Pull, build, and deploy (production)
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # The Vercel CLI reads VERCEL_TOKEN from the environment, so no
+          # --token flag is needed (and nothing looks like a token assignment).
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          vercel pull --yes --environment=production
+          vercel build --prod
+          vercel deploy --prebuilt --prod
+
+      # Post-deploy verification: the live gate must serve the engine version
+      # we just shipped. Replaces the old push-triggered drift check, which
+      # could race the deploy and false-alarm.
+      - name: Verify deployed engine version
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          DEPLOY_URL: ${{ vars.LASTGATE_DEPLOY_URL || 'https://lastgate.vercel.app' }}
+        run: |
+          set -euo pipefail
+          REPO_VERSION=$(node -p "require('./packages/engine/package.json').version")
+          echo "expecting engine v$REPO_VERSION at $DEPLOY_URL"
+          for i in $(seq 1 10); do
+            DEPLOYED=$(curl -fsS "$DEPLOY_URL/api/version" 2>/dev/null | node -p "try{JSON.parse(require('fs').readFileSync(0,'utf8')).engineVersion||''}catch(e){''}" || true)
+            if [ "$DEPLOYED" = "$REPO_VERSION" ]; then
+              echo "deployed engine v$DEPLOYED matches main"
+              exit 0
+            fi
+            echo "attempt $i/10: deployed '$DEPLOYED' != '$REPO_VERSION', retrying in 10s..."
+            sleep 10
+          done
+          echo "::error::deploy finished but $DEPLOY_URL still serves '$DEPLOYED' (expected $REPO_VERSION)"
+          exit 1

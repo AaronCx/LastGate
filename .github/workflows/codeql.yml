@@ -1,0 +1,40 @@
+name: CodeQL
+
+# Static analysis for the codebase itself. A safety gate for AI-written code
+# should be able to point at its own scan results.
+# Note: uses "advanced setup"; if GitHub prompts to enable default CodeQL
+# setup in repo settings, decline (they conflict).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "30 7 * * 1" # weekly, Monday 07:30 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (JavaScript/TypeScript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write # to upload results to the Security tab
+      actions: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
+        with:
+          category: "/language:javascript-typescript"

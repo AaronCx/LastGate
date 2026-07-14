@@ -7,6 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/AaronCx/LastGate/actions"><img src="https://img.shields.io/github/actions/workflow/status/AaronCx/LastGate/ci.yml?branch=main&label=CI&logo=github" alt="CI"></a>
+  <a href="https://github.com/AaronCx/LastGate/actions/workflows/codeql.yml"><img src="https://img.shields.io/github/actions/workflow/status/AaronCx/LastGate/codeql.yml?branch=main&label=CodeQL&logo=github" alt="CodeQL"></a>
   <a href="https://www.npmjs.com/package/lastgate"><img src="https://img.shields.io/npm/v/lastgate?logo=npm&color=cb3837" alt="npm"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-f9f1e1?logo=bun&logoColor=000" alt="Bun"></a>
@@ -350,7 +351,7 @@ lastgate/
 ├── packages/mcp-server/   # MCP server for AI agents
 ├── supabase/              # Database migrations
 ├── docs/                  # Architecture, setup, check reference
-└── .github/workflows/     # CI + release automation
+└── .github/workflows/     # CI, gated deploy, drift check, CodeQL, release
 ```
 
 ## Tech Stack
@@ -362,8 +363,24 @@ lastgate/
 | **Language** | TypeScript (strict mode) |
 | **Database** | Supabase (PostgreSQL + Auth + Row-Level Security) |
 | **GitHub** | GitHub App (Webhooks, Checks API, Octokit) |
-| **CI/CD** | GitHub Actions |
+| **CI/CD** | GitHub Actions (gated deploy, CodeQL, Dependabot auto-merge, npm provenance) |
 | **CLI** | Commander.js, Chalk, Ora |
+
+---
+
+## Pipeline & Supply-Chain Security
+
+LastGate's whole premise is that AI-written code needs a gate. So this repo holds itself to the same bar: every change, human or agent, clears the same kind of pipeline the product enforces for others.
+
+| Stage | What happens |
+|---|---|
+| **Every pull request** | Full test suite across engine, CLI, SDK, MCP server, web, and the integration/security suites, plus engine type-check, production builds, CodeQL static analysis, and a dependency review that blocks newly added packages with known vulnerabilities |
+| **Merge to main** | Deploy runs only after CI is green, ships `apps/web` to Vercel, then verifies the live `/api/version` matches the repo before the run passes |
+| **Continuously** | A daily drift check confirms production still serves the engine version on `main` |
+| **Dependencies** | Dependabot runs weekly behind a cooldown window (5 days for minor/patch, 14 for majors) so fresh releases age before landing; green minor/patch bumps auto-merge, majors wait for human review |
+| **Releases** | The CLI publishes to npm only after tests pass and the packed tarball is smoke-tested in a clean install, then ships with npm provenance attestation |
+
+Hardening details: GitHub Actions are pinned to full commit SHAs (Dependabot keeps the pins fresh), all installs run with a frozen lockfile, and workflow tokens default to least-privilege `contents: read`.
 
 ---
 
@@ -408,4 +425,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, 
 ## License
 
 [MIT](LICENSE) &mdash; Built by [Aaron Character](https://github.com/AaronCx)
-# tiny test

@@ -2,22 +2,25 @@ name: Deploy Drift Check
 
 # Stops the repo and the live gate from silently diverging: compares the engine
 # version the deployment actually serves (GET /api/version) against the version
-# in the repo, and fails loudly on a mismatch. Runs daily, on demand, and on
-# every push to main. (See lastgate-deploy-drift-pr.)
+# in the repo, and fails loudly on a mismatch. Runs daily and on demand.
+# The push-to-main case is now verified inline by ci.yml's deploy job, so the
+# push trigger was removed (it could race the deploy and false-alarm).
 
 on:
   schedule:
     - cron: "0 9 * * *" # daily 09:00 UTC
   workflow_dispatch:
-  push:
-    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   drift:
     name: Engine version drift
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Compare deployed engine version to the repo
         env:
@@ -32,11 +35,11 @@ jobs:
           echo "deployed engine version: ${DEPLOYED_VERSION:-<none>}"
 
           if [ -z "$DEPLOYED_VERSION" ]; then
-            echo "::error::no deployed engineVersion — redeploy apps/web from main."
+            echo "::error::no deployed engineVersion; redeploy apps/web from main."
             exit 1
           fi
           if [ "$DEPLOYED_VERSION" != "$REPO_VERSION" ]; then
-            echo "::error::drift: deployed $DEPLOYED_VERSION but main is $REPO_VERSION — redeploy."
+            echo "::error::drift: deployed $DEPLOYED_VERSION but main is $REPO_VERSION; redeploy."
             exit 1
           fi
           echo "deployed engine v$DEPLOYED_VERSION matches main"
