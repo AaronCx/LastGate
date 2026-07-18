@@ -8,17 +8,18 @@ name: Dependabot auto-merge
 # Majors are deliberately excluded: they arrive as individual PRs for human
 # review (see the group config in .github/dependabot.yml).
 #
-# Known caveat: merges enabled with the default GITHUB_TOKEN may not trigger
-# downstream push workflows on main (GitHub anti-recursion rule). If the CI
-# deploy job does not fire after an auto-merge, create a fine-grained PAT with
-# contents:write + pull-requests:write, store it as AUTOMERGE_TOKEN, and swap
-# it in below. The daily drift check catches any missed deploy either way.
+# Auto-merge is enabled with a lastgate-app installation token (minted below)
+# rather than GITHUB_TOKEN: merges attributed to the app DO trigger downstream
+# push workflows on main (the CI deploy job), which the default token's
+# anti-recursion rule suppresses. The daily drift check remains the backstop.
+# Secrets are Dependabot-scoped (this workflow runs in the Dependabot secrets
+# context): LASTGATE_AUTOMERGE_APP_ID + LASTGATE_AUTOMERGE_APP_KEY.
 
 on: pull_request
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pull-requests: read
 
 jobs:
   automerge:
@@ -31,9 +32,16 @@ jobs:
         id: metadata
         uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2
 
+      - name: Mint lastgate-app installation token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.LASTGATE_AUTOMERGE_APP_ID }}
+          private-key: ${{ secrets.LASTGATE_AUTOMERGE_APP_KEY }}
+
       - name: Enable auto-merge (squash)
         if: steps.metadata.outputs.update-type == 'version-update:semver-minor' || steps.metadata.outputs.update-type == 'version-update:semver-patch'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # or secrets.AUTOMERGE_TOKEN, see header
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
