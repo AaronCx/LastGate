@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-19
+
+First release since the CLI became installable.
+
+### Added
+- **Policy packs** — agent-safety, secrets-strict, and solo-dev packs with `extends` resolution in `.lastgate.yml` (#26)
+- **Semantic review tier** — opt-in LLM check with a diff-hash cache, warn by default (#25)
+- **Deterministic autofix** — hardcoded-secret autofix and `lint --fix`, wired to `lastgate check --fix` (#24, #51)
+- **CLI device-authorization login** (#48)
+- **CLI ergonomics** — interactive step mode, install-hooks, watch, severity-aware checks (#7, #8)
+- **Real VS Code extension** — status bar, findings tree, diagnostics (was a no-op stub) (#50)
+- **Dashboard wiring** — diffs stored and rendered, settings persistence, Slack/Discord notifications actually send, branch protection auto-configures on install (#44, #51)
+- **Provenance** — engineVersion + active config stamped into results; deploy drift guard (#16, #17)
+
+### Fixed
+- The published CLI installs and runs under plain node: self-contained bin with a node shebang, no `workspace:*` runtime dependency, `Bun.*` APIs replaced with node equivalents (#46, #48)
+- Checks honor configured severity throughout; `--only` preserves default severities; lint/build scoped to the diff (#4, #6, #10, #12)
+- Check history endpoint is bearer-authed instead of always returning 401 (#44)
+
+### Security
+- Engine gate-bypass hardening: deep-merged caller config (a partial config can no longer drop checks or downgrade severities), gate-neutralizing allow-glob rejection, secret-entropy floor scaled to the token charset, `bun audit` output parsed, adversarial regression corpus (#42)
+- Web: every API route tenant-scoped, team/audit routes authenticated + RBAC-gated, opaque session tokens with OAuth tokens encrypted at rest, XSS/SSRF/login-CSRF fixes, atomic rate limiting, gate config read from the PR base ref (#43)
+- Database: RLS enabled on device_auth; security_invoker on the analytics views (#54, #55)
+- CI/CD: deploys gated on green CI, CodeQL + dependency review added, actions pinned to SHAs (#72)
+- Removed the unwired custom-checks RCE footgun (#51)
+
+### Changed
+- License and repository metadata across all workspace packages; npm publish carries provenance (#69)
+
 ## [0.3.0] - 2026-03-15
 
 ### Added
