@@ -10,7 +10,7 @@
     },
     "apps/web": {
       "name": "@lastgate/web",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@lastgate/engine": "workspace:*",
         "@octokit/auth-app": "8.2.0",
@@ -42,7 +42,7 @@
     },
     "packages/cli": {
       "name": "lastgate",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "bin": {
         "lastgate": "dist/lastgate.js",
       },
@@ -59,7 +59,7 @@
     },
     "packages/engine": {
       "name": "@lastgate/engine",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "yaml": "^2.7.0",
         "zod": "^3.24.0",
@@ -71,7 +71,7 @@
     },
     "packages/mcp-server": {
       "name": "@lastgate/mcp-server",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "bin": {
         "lastgate-mcp": "bin/lastgate-mcp.ts",
       },
@@ -82,7 +82,7 @@
     },
     "packages/sdk": {
       "name": "@lastgate/sdk",
-      "version": "0.3.0",
+      "version": "0.4.0",
     },
   },
   "packages": {
