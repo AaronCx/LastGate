@@ -14,6 +14,12 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"></a>
 </p>
 
+> **Archived (August 2026). LastGate is superseded by [monad](https://github.com/AaronCx/monad).**
+> monad is one daemon for agentic coding and PR review. LastGate's check engine
+> (`packages/engine`: pipeline, diff scoping, secret/lint/build checks, allowlists) and its GitHub
+> App plumbing (`apps/web/lib/github`) are being ported into monad as first-class session tools.
+> This repository is read-only and kept for history.
+
 ---
 
 ## The Problem
